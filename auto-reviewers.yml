@@ -1,0 +1,48 @@
+
+name: Automatically Request PR Reviewers
+
+on:
+  pull_request_target:
+    types: [opened, reopened, ready_for_review]
+
+permissions:
+  pull-requests: write
+
+jobs:
+  request-reviewers:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Request reviews from teammates
+        uses: actions/github-script@v7
+
+        with:
+          script: |
+            const teammates = [
+              "swapnalik-commits",
+              "ddan18",
+              "kritisubedi1"
+            ];
+
+            const author = context.payload.pull_request.user.login;
+
+            const reviewers = teammates.filter(
+              username =>
+                username.toLowerCase() !== author.toLowerCase()
+            );
+
+            if (reviewers.length === 0) {
+              core.info("No reviewers to request.");
+              return;
+            }
+
+            await github.rest.pulls.requestReviewers({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.payload.pull_request.number,
+              reviewers: reviewers
+            });
+
+            core.info(
+              `Requested reviews from: ${reviewers.join(", ")}`
+            );
