@@ -4,36 +4,63 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>AQI Pulse</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
-  <h1>AQI Pulse</h1>
+  <header class="site-header">
+    <div class="brand">
+      <h1>AQI Pulse</h1>
+      <p class="tagline">Wildfire smoke, wind, and air quality in one view</p>
+    </div>
+    <div class="place-picker">
+      <label for="place">Place</label>
+      <select id="place">
+        <option value="34.05,-118.24">Los Angeles</option>
+        <option value="39.74,-104.99">Denver</option>
+        <option value="47.61,-122.33">Seattle</option>
+      </select>
+    </div>
+  </header>
 
-  <label for="place">Place</label>
-  <select id="place">
-    <option value="34.05,-118.24">Los Angeles</option>
-    <option value="39.74,-104.99">Denver</option>
-    <option value="47.61,-122.33">Seattle</option>
-  </select>
+  <main>
+    <section class="sky" id="now" aria-live="polite">
+      <div class="sky-inner">
+        <h2 id="now-title">Checking the air…</h2>
+        <div class="now-row">
+          <p class="now-aqi" id="now-aqi" hidden></p>
+          <div id="trend" class="trend" role="status" hidden></div>
+        </div>
+        <p id="advice" class="advice" hidden></p>
+      </div>
+    </section>
 
-  <section id="map">
-    <h2>Map</h2>
-    <p>Fire detections will appear here.</p>
-  </section>
+    <div class="panels">
+      <section id="map" class="panel">
+        <h2>Fires and wind</h2>
+        <p>Fire detections will appear here.</p>
+      </section>
 
-  <section id="chart">
-    <h2>Air quality</h2>
-    <p>The AQI chart will appear here.</p>
-    <div id="trend" class="trend" role="status" hidden></div>
-    <p id="advice" class="advice" hidden></p>
-    <div id="aqi-chart"></div>
-    <p class="note">US AQI, hourly, last 24 hours (local time at the place). Shaded bands are the official AQI levels. Source: Open-Meteo Air Quality API. <span id="updated"></span></p>
-  </section>
+      <section id="chart" class="panel">
+        <h2>Air quality, last 24 hours</h2>
+        <p>The AQI chart will appear here.</p>
+        <div id="aqi-chart"></div>
+        <p class="note">Hourly US AQI in the place's local time. Bands show the official AQI levels.</p>
+      </section>
+    </div>
 
-  <section id="summary">
-    <h2>What changed</h2>
-    <p>The trend explanation will appear here.</p>
-  </section>
+    <section id="summary" class="panel panel-wide">
+      <h2>What changed</h2>
+      <p>The trend explanation will appear here.</p>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p>Data: <a href="https://open-meteo.com/en/docs/air-quality-api">Open-Meteo Air Quality</a>, <a href="https://open-meteo.com/en/docs">Open-Meteo Weather</a>, and <a href="https://firms.modaps.eosdis.nasa.gov/">NASA FIRMS</a>. <span id="updated"></span></p>
+    <p>COMP 6934 group project, Memorial University of Newfoundland.</p>
+  </footer>
 
   <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
   <script src="js/trend.js"></script>

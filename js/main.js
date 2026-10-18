@@ -8,10 +8,14 @@ const sections = [
 const chartBox = document.querySelector("#aqi-chart");
 const trendBox = document.querySelector("#trend");
 const adviceBox = document.querySelector("#advice");
+const skyBand = document.querySelector("#now");
+const nowTitle = document.querySelector("#now-title");
+const nowAqi = document.querySelector("#now-aqi");
 const updatedBox = document.querySelector("#updated");
 
 // Latest trend for the selected place (the "What changed" text can reuse it).
 let currentTrend = null;
+let lastPoints = null;
 
 // US EPA AQI levels: used for the chart bands and the health message.
 const AQI_LEVELS = [
@@ -48,13 +52,17 @@ async function loadAirQuality(coords, placeName) {
   const [lat, lon] = coords.split(",");
   const thisRequest = ++requestCount;
 
-  sections[1].textContent = "Loading air quality for " + placeName + "...";
+  sections[1].textContent = "Loading air quality for " + placeName + "…";
+  nowTitle.textContent = "Checking the air in " + placeName + "…";
+  nowAqi.hidden = true;
+  skyBand.style.removeProperty("--level");
   sections[1].hidden = false;
   trendBox.hidden = true;
   adviceBox.hidden = true;
   updatedBox.textContent = "";
   chartBox.replaceChildren();
   currentTrend = null;
+  lastPoints = null;
 
   const url = "https://air-quality-api.open-meteo.com/v1/air-quality" +
     "?latitude=" + lat + "&longitude=" + lon +
@@ -80,20 +88,23 @@ async function loadAirQuality(coords, placeName) {
 
     if (points.length < 2) {
       sections[1].textContent = "No recent air-quality data for " + placeName + ".";
+      nowTitle.textContent = "No recent air-quality data for " + placeName + ".";
       return;
     }
 
     sections[1].hidden = true;
     currentTrend = trendFor(points);
+    lastPoints = points;
     drawChart(points, currentTrend);
     showTrend();
-    showAdvice(points[points.length - 1]);
-    updatedBox.textContent = "Last updated " + new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) + " (your time).";
+    showNow(points[points.length - 1], placeName);
+    updatedBox.textContent = "Updated " + new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) + " (your time).";
   } catch (error) {
     if (thisRequest !== requestCount) return;
     const reason = error.name === "TimeoutError" ? "the request timed out" : error.message;
     sections[1].textContent = "Could not load air quality for " + placeName +
       " (" + reason + "). Try again in a minute.";
+    nowTitle.textContent = "Couldn't load air quality for " + placeName + ". Try again in a minute.";
   }
 }
 
@@ -111,8 +122,9 @@ function trendFor(points) {
 
 // Line chart of the last 24 hours.
 function drawChart(points, trend) {
-  const width = 720;
-  const height = 320;
+  // draw at the real on-screen width so text stays readable on phones
+  const width = Math.max(300, Math.round(chartBox.clientWidth || 720));
+  const height = width < 520 ? 260 : 320;
   const margin = { top: 16, right: 24, bottom: 36, left: 56 };
 
   const highest = d3.max(points, p => p.aqi);
@@ -126,6 +138,7 @@ function drawChart(points, trend) {
     .domain([0, topOfChart])
     .range([height - margin.bottom, margin.top]);
 
+  chartBox.replaceChildren();
   const svg = d3.select(chartBox)
     .append("svg")
     .attr("viewBox", [0, 0, width, height])
@@ -175,7 +188,7 @@ function drawChart(points, trend) {
   svg.append("g")
     .attr("class", "axis")
     .attr("transform", "translate(0," + (height - margin.bottom) + ")")
-    .call(d3.axisBottom(x).ticks(6).tickFormat(d3.utcFormat("%-I %p")));
+    .call(d3.axisBottom(x).ticks(width < 520 ? 4 : 6).tickFormat(d3.utcFormat("%-I %p")));
 
   svg.append("g")
     .attr("class", "axis")
@@ -224,12 +237,11 @@ function drawChart(points, trend) {
   // "Now" label on the latest point.
   const last = points[points.length - 1];
   svg.append("text")
+    .attr("class", "now-label")
     .attr("x", x(last.time) - 6)
     // move it below the point if it would go off the top
     .attr("y", y(last.aqi) < margin.top + 20 ? y(last.aqi) + 20 : y(last.aqi) - 10)
     .attr("text-anchor", "end")
-    .attr("font-weight", 600)
-    .attr("fill", "#1f4e9c")
     .text("Now: " + last.aqi);
 }
 
@@ -246,15 +258,29 @@ function showTrend() {
   trendBox.hidden = false;
 }
 
-// Health message for the latest AQI value.
-function showAdvice(latest) {
+// Top band: headline, current AQI, health message, and the level color.
+function showNow(latest, placeName) {
   const level = levelFor(latest.aqi);
-  adviceBox.style.borderLeftColor = level.color;
-  const heading = document.createElement("strong");
-  heading.textContent = level.name + " (AQI " + latest.aqi + ").";
-  adviceBox.replaceChildren(heading, " " + level.advice);
+  skyBand.style.setProperty("--level", level.color);
+  nowTitle.textContent = "The air in " + placeName + " is " + level.name.toLowerCase() + " right now.";
+
+  const value = document.createElement("strong");
+  value.textContent = latest.aqi;
+  nowAqi.replaceChildren(value, "US AQI");
+  nowAqi.hidden = false;
+
+  adviceBox.textContent = level.advice;
   adviceBox.hidden = false;
 }
+
+// Redraw the chart when the window size changes.
+let resizeTimer = null;
+window.addEventListener("resize", () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    if (lastPoints) drawChart(lastPoints, currentTrend);
+  }, 150);
+});
 
 placeSelect.addEventListener("change", showPlace);
 showPlace();
