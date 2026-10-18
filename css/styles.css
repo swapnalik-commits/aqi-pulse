@@ -45,6 +45,23 @@ label {
   color: #52606d;
 }
 
+/* Trend badge */
+.trend {
+  display: inline-block;
+  margin: 4px 0 12px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 18px;
+}
+
+.trend small {
+  font-weight: 400;
+  font-size: 13px;
+  margin-left: 6px;
+}
+
 /* Health message */
 .advice {
   margin: 0 0 12px;
@@ -54,11 +71,25 @@ label {
   max-width: 720px;
 }
 
+/* Trend window on the chart */
+#aqi-chart .trend-window {
+  fill: #1f4e9c;
+  opacity: 0.08;
+}
+
+#aqi-chart .trend-window-label,
 #aqi-chart .axis-title {
   font-size: 12px;
   fill: #52606d;
 }
 
+#aqi-chart .trend-start {
+  fill: #ffffff;
+  stroke: #1f4e9c;
+  stroke-width: 2;
+}
+
 @media (max-width: 600px) {
   body { margin: 16px; }
+  .trend { font-size: 16px; }
 }

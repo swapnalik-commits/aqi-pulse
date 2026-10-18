@@ -6,8 +6,12 @@ const sections = [
 ];
 
 const chartBox = document.querySelector("#aqi-chart");
+const trendBox = document.querySelector("#trend");
 const adviceBox = document.querySelector("#advice");
 const updatedBox = document.querySelector("#updated");
+
+// Latest trend for the selected place (the "What changed" text can reuse it).
+let currentTrend = null;
 
 // US EPA AQI levels: used for the chart bands and the health message.
 const AQI_LEVELS = [
@@ -46,9 +50,11 @@ async function loadAirQuality(coords, placeName) {
 
   sections[1].textContent = "Loading air quality for " + placeName + "...";
   sections[1].hidden = false;
+  trendBox.hidden = true;
   adviceBox.hidden = true;
   updatedBox.textContent = "";
   chartBox.replaceChildren();
+  currentTrend = null;
 
   const url = "https://air-quality-api.open-meteo.com/v1/air-quality" +
     "?latitude=" + lat + "&longitude=" + lon +
@@ -78,7 +84,9 @@ async function loadAirQuality(coords, placeName) {
     }
 
     sections[1].hidden = true;
-    drawChart(points);
+    currentTrend = trendFor(points);
+    drawChart(points, currentTrend);
+    showTrend();
     showAdvice(points[points.length - 1]);
     updatedBox.textContent = "Last updated " + new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) + " (your time).";
   } catch (error) {
@@ -89,8 +97,20 @@ async function loadAirQuality(coords, placeName) {
   }
 }
 
+// Only show a trend if the two readings are exactly TREND_RULE.hours apart
+// (if an hour is missing, the comparison would be wrong).
+function trendFor(points) {
+  const trend = getTrend(points.map(p => p.aqi));
+  if (!trend) return null;
+  const start = points[points.length - 1 - TREND_RULE.hours];
+  const end = points[points.length - 1];
+  const hoursApart = (end.time - start.time) / 3600000;
+  if (hoursApart !== TREND_RULE.hours) return null;
+  return { ...trend, start, end };
+}
+
 // Line chart of the last 24 hours.
-function drawChart(points) {
+function drawChart(points, trend) {
   const width = 720;
   const height = 320;
   const margin = { top: 16, right: 24, bottom: 36, left: 56 };
@@ -135,6 +155,23 @@ function drawChart(points) {
     bottom = level.max;
   });
 
+  // Shade the hours the trend label compares.
+  if (trend) {
+    const { start, end } = trend;
+    svg.append("rect")
+      .attr("class", "trend-window")
+      .attr("x", x(start.time))
+      .attr("width", x(end.time) - x(start.time))
+      .attr("y", margin.top)
+      .attr("height", height - margin.top - margin.bottom);
+    svg.append("text")
+      .attr("class", "trend-window-label")
+      .attr("x", (x(start.time) + x(end.time)) / 2)
+      .attr("y", height - margin.bottom - 6)
+      .attr("text-anchor", "middle")
+      .text("last " + TREND_RULE.hours + " h");
+  }
+
   svg.append("g")
     .attr("class", "axis")
     .attr("transform", "translate(0," + (height - margin.bottom) + ")")
@@ -173,6 +210,17 @@ function drawChart(points) {
     .append("title")
     .text(p => d3.utcFormat("%b %-d, %-I %p")(p.time) + ": AQI " + p.aqi);
 
+  // Hollow dot marks the earlier reading used for the trend.
+  if (trend) {
+    svg.append("circle")
+      .attr("class", "trend-start")
+      .attr("cx", x(trend.start.time))
+      .attr("cy", y(trend.start.aqi))
+      .attr("r", 5)
+      .append("title")
+      .text(TREND_RULE.hours + " hours ago: AQI " + trend.start.aqi);
+  }
+
   // "Now" label on the latest point.
   const last = points[points.length - 1];
   svg.append("text")
@@ -183,6 +231,19 @@ function drawChart(points) {
     .attr("font-weight", 600)
     .attr("fill", "#1f4e9c")
     .text("Now: " + last.aqi);
+}
+
+// Trend badge (rule is in js/trend.js).
+function showTrend() {
+  if (!currentTrend) return;
+
+  const sign = currentTrend.change > 0 ? "+" : "";
+  const detail = document.createElement("small");
+  detail.textContent = "(" + sign + currentTrend.change + " AQI in the last " + TREND_RULE.hours + " hours)";
+
+  trendBox.style.background = TREND_COLORS[currentTrend.label];
+  trendBox.replaceChildren(TREND_ARROWS[currentTrend.label] + " " + currentTrend.label, detail);
+  trendBox.hidden = false;
 }
 
 // Health message for the latest AQI value.
