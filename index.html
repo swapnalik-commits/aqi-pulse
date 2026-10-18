@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>AQI Pulse</title>
   <link rel="stylesheet" href="css/styles.css">
 </head>
@@ -23,6 +24,9 @@
   <section id="chart">
     <h2>Air quality</h2>
     <p>The AQI chart will appear here.</p>
+    <p id="advice" class="advice" hidden></p>
+    <div id="aqi-chart"></div>
+    <p class="note">US AQI, hourly, last 24 hours (local time at the place). Shaded bands are the official AQI levels. Source: Open-Meteo Air Quality API. <span id="updated"></span></p>
   </section>
 
   <section id="summary">
@@ -30,6 +34,7 @@
     <p>The trend explanation will appear here.</p>
   </section>
 
+  <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
   <script src="js/main.js"></script>
 </body>
 </html>

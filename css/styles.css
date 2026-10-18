@@ -7,3 +7,58 @@ body {
 label {
   margin-right: 8px;
 }
+
+/* AQI chart */
+#aqi-chart svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+#aqi-chart .aqi-line {
+  fill: none;
+  stroke: #1f4e9c;
+  stroke-width: 2.5;
+}
+
+#aqi-chart .aqi-dot {
+  fill: #1f4e9c;
+}
+
+#aqi-chart .band-label {
+  font-size: 11px;
+  fill: #52606d;
+}
+
+#aqi-chart .axis text {
+  font-size: 12px;
+  fill: #52606d;
+}
+
+#aqi-chart .axis path,
+#aqi-chart .axis line {
+  stroke: #9aa5b1;
+}
+
+.note {
+  font-size: 13px;
+  color: #52606d;
+}
+
+/* Health message */
+.advice {
+  margin: 0 0 12px;
+  padding: 8px 12px;
+  border-left: 6px solid #9aa5b1;
+  background: #f5f7fa;
+  max-width: 720px;
+}
+
+#aqi-chart .axis-title {
+  font-size: 12px;
+  fill: #52606d;
+}
+
+@media (max-width: 600px) {
+  body { margin: 16px; }
+}
