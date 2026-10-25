@@ -42,6 +42,7 @@ let requestCount = 0;
 function showPlace() {
   const placeName = placeSelect.selectedOptions[0].textContent;
   showFires(placeSelect.value, placeName);
+  loadWind(placeSelect.value, placeName);
   sections[1].textContent = "Trend for " + placeName + " will appear here.";
   loadAirQuality(placeSelect.value, placeName);
 }
