@@ -51,7 +51,8 @@ fireMap.on("load", () => {
   fireMap.on("click", "fire-dots", event => {
     const fire = event.features[0];
     const content = document.createElement("div");
-    content.textContent = "Detected " + new Date(fire.properties.detectedAt).toLocaleString([], {
+    content.textContent = (fire.properties.demo ? "Sample time (not live): " : "Detected ") +
+      new Date(fire.properties.detectedAt).toLocaleString([], {
       year: "numeric", month: "short", day: "numeric",
       hour: "numeric", minute: "2-digit", timeZoneName: "short"
     });
@@ -187,20 +188,28 @@ async function showFires(coords, placeName) {
       const error = await response.json().catch(() => ({}));
       throw new Error(error.message || "Local FIRMS request failed (HTTP " + response.status + ").");
     }
-    const detections = await response.json();
+    const result = await response.json();
     if (thisRequest !== fireRequestCount) return;
+    if (!Array.isArray(result.fires)) throw new Error("Fire data had an unexpected format.");
+    const detections = result.fires;
 
     setFireFeatures(detections.map(fire => ({
       type: "Feature",
       geometry: { type: "Point", coordinates: [fire.longitude, fire.latitude] },
-      properties: { detectedAt: fire.detectedAt }
+      properties: { detectedAt: fire.detectedAt, demo: Boolean(result.demo) }
     })));
 
     const count = detections.length;
-    fireStatus.textContent = count
-      ? count + " recent fire detection" + (count === 1 ? "" : "s") +
-        " within about 275 km of " + placeName + ". FIRMS satellite detections are hotspots, not confirmed fire perimeters."
-      : "No recent NASA FIRMS detections found near " + placeName + ".";
+    if (result.demo) {
+      fireStatus.textContent = count
+        ? "DEMO SAMPLE: " + count + " example fire locations near " + placeName + ". These are not real or live detections."
+        : "DEMO SAMPLE: no example fires for " + placeName + ". This is not live FIRMS data.";
+    } else {
+      fireStatus.textContent = count
+        ? count + " recent fire detection" + (count === 1 ? "" : "s") +
+          " within about 275 km of " + placeName + ". FIRMS satellite detections are hotspots, not confirmed fire perimeters."
+        : "No recent NASA FIRMS detections found near " + placeName + ".";
+    }
   } catch (error) {
     if (thisRequest !== fireRequestCount) return;
     fireStatus.textContent = "Could not load fire detections for " + placeName + " (" + error.message + ").";

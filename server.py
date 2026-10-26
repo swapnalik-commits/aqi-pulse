@@ -16,6 +16,28 @@ import os
 ROOT = Path(__file__).resolve().parent
 FIRMS_SOURCES = ("VIIRS_SNPP_NRT", "VIIRS_NOAA20_NRT", "VIIRS_NOAA21_NRT")
 SEARCH_RADIUS_KM = 275
+DEMO_FIRE_DATA = {
+    "Los Angeles": [
+        {"latitude": 34.13, "longitude": -117.96, "detectedAt": "2025-08-15T14:32:00Z"},
+        {"latitude": 33.86, "longitude": -118.45, "detectedAt": "2025-08-15T18:07:00Z"},
+        {"latitude": 34.42, "longitude": -118.52, "detectedAt": "2025-08-16T02:11:00Z"},
+    ],
+    "Denver": [
+        {"latitude": 39.86, "longitude": -105.18, "detectedAt": "2025-08-15T16:20:00Z"},
+        {"latitude": 40.15, "longitude": -104.82, "detectedAt": "2025-08-15T21:45:00Z"},
+        {"latitude": 39.61, "longitude": -104.72, "detectedAt": "2025-08-16T03:12:00Z"},
+    ],
+    "Seattle": [
+        {"latitude": 47.79, "longitude": -121.92, "detectedAt": "2025-08-15T13:50:00Z"},
+        {"latitude": 47.37, "longitude": -122.10, "detectedAt": "2025-08-15T19:16:00Z"},
+        {"latitude": 48.10, "longitude": -122.20, "detectedAt": "2025-08-16T01:04:00Z"},
+    ],
+}
+DEMO_PLACES = {
+    "Los Angeles": (34.05, -118.24),
+    "Denver": (39.74, -104.99),
+    "Seattle": (47.61, -122.33),
+}
 
 
 def load_map_key():
@@ -102,6 +124,13 @@ def nearby_fires(latitude, longitude):
             if distance_km(latitude, longitude, fire["latitude"], fire["longitude"]) <= SEARCH_RADIUS_KM]
 
 
+def demo_fires_near(latitude, longitude):
+    place = min(DEMO_PLACES, key=lambda name: distance_km(
+        latitude, longitude, DEMO_PLACES[name][0], DEMO_PLACES[name][1]
+    ))
+    return [dict(fire, demo=True) for fire in DEMO_FIRE_DATA[place]]
+
+
 class Handler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=str(ROOT), **kwargs)
@@ -115,22 +144,24 @@ class Handler(SimpleHTTPRequestHandler):
         if requested_path != "/api/fires":
             return super().do_GET()
 
-        if not MAP_KEY:
-            return self.send_json(503, {"message": "Add MAP_KEY=<your FIRMS map key> to .env, then restart the server."})
-
         try:
             query = parse_qs(parsed.query)
             latitude = float(query["latitude"][0])
             longitude = float(query["longitude"][0])
             if not (-90 <= latitude <= 90 and -180 <= longitude <= 180):
                 raise ValueError
-            result = nearby_fires(latitude, longitude)
         except (KeyError, IndexError, ValueError):
             return self.send_json(400, {"message": "Provide valid latitude and longitude values."})
+
+        if not MAP_KEY:
+            return self.send_json(200, {"fires": demo_fires_near(latitude, longitude), "demo": True})
+
+        try:
+            result = nearby_fires(latitude, longitude)
         except RuntimeError as error:
             return self.send_json(502, {"message": str(error)})
 
-        return self.send_json(200, result)
+        return self.send_json(200, {"fires": result, "demo": False})
 
     def send_json(self, status, payload):
         body = json.dumps(payload).encode("utf-8")
@@ -144,7 +175,7 @@ class Handler(SimpleHTTPRequestHandler):
 
 if __name__ == "__main__":
     if not MAP_KEY:
-        print("No MAP_KEY found in .env; add it before loading fire detections.")
+        print("No MAP_KEY found in .env; serving labeled demo fire data.")
     address = ("127.0.0.1", int(os.environ.get("AQI_PULSE_PORT", "8000")))
     server = ThreadingHTTPServer(address, Handler)
     print(f"AQI Pulse is running at http://{address[0]}:{address[1]}/ (Ctrl+C to stop)")
