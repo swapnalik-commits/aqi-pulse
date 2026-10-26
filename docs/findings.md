@@ -8,6 +8,8 @@ _To be added._
 
 ## Q2. Can the Worsening / Stable / Improving label be trusted? (issue #10)
 
+> **Update (issue #17):** based on these results, the page now uses the **1 hour / 5 points** rule. The first tables below test the original 3 hours / 10 points rule; the table under "Testing other versions of the rule" shows why we switched.
+
 ### Short answer
 
 **Partly.** The label is a correct description of the **last 3 hours**. As a hint about the **next** 3 hours, though, it is weak:
@@ -19,11 +21,11 @@ _To be added._
 
 - **A shorter window works better.** When we tested 12 versions of the rule (below), comparing with **1 hour** ago instead of 3 made "Worsening" hold up 93% to 100% of the time. A 1-hour, 5-point rule was the only version that beat "always Stable".
 
-**What this means for the page:** the label should be read as "what just happened", not "what will happen". That's why the page shows it as, for example, "Worsening (+12 AQI in the last 3 hours)". The "What changed" text (issue #8) should use the same past-tense wording.
+**What this means for the page:** the label should be read as "what just happened", not "what will happen". That's why the page shows the change next to the label, for example "Worsening (+8 AQI in the last 1 hour)". The "What changed" text (issue #8) should use the same past-tense wording.
 
-### The rule being tested (issue #7, `js/trend.js`)
+### The rule we tested first (issue #7)
 
-Compare the latest hourly US AQI with the value 3 hours earlier:
+Compare the latest hourly US AQI with the value 3 hours earlier. (The page now uses 1 hour and 5 points instead; see the update above.)
 
 | Change in 3 hours | Label |
 |---|---|
@@ -87,7 +89,7 @@ What the table shows:
 - **1 hour with 5 points is the only rule that beats "always Stable"** (96.6% vs 95.5%). It still flags real changes often (151 times in 92 days across three cities). With 15 or 20 points the label almost never changes, which makes it useless.
 - **Caveat:** US AQI changes smoothly from hour to hour, so a short window partly works because the next hour usually looks like the last one. It tells you "this is happening now", not a long-range forecast.
 
-**Recommendation:** switch the page rule to **1 hour / 5 points**. It's a two-number change in `js/trend.js` (`hours: 1, threshold: 5`), and every part of the page, plus this test, reads from that file. We kept 3 hours / 10 points for now because issues #8 and #11 were written around it, so the team should agree on the change first.
+**Decision:** the team agreed to switch the page rule to **1 hour / 5 points** (issue #17). It's set in `js/trend.js` (`hours: 1, threshold: 5`), and every part of the page, plus this test, reads from that file.
 
 ### Examples (local time)
 

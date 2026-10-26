@@ -25,15 +25,17 @@ The proposal points out that most tools show "a single AQI number with no real c
 | **Direct labels** (band names, "Now: 53") | No legend to look back and forth at. |
 | **Plain-language health message** | Turns the number into a decision ("reduce long outdoor activity"), which is what the proposal's audience actually needs. The wording follows the US EPA / AirNow guidance for each level. |
 | **Trend label: word + arrow + color** | The word carries the meaning. The arrow (↑ → ↓) means color-blind viewers don't have to rely on red vs green. The color is only a quick extra cue. |
-| **Shaded "last 3 h" window and hollow dot** | Shows exactly which two readings the trend label compares, so the label and the chart tell one story and the label can be checked by eye. |
-| **The number next to the label** ("+12 AQI in the last 3 hours") | Shows the evidence, and says plainly that the label describes the past, not a forecast (see `findings.md`, Q2). |
+| **Shaded "last 1 h" window and hollow dot** | Shows exactly which two readings the trend label compares, so the label and the chart tell one story and the label can be checked by eye. |
+| **The number next to the label** ("+8 AQI in the last 1 hour") | Shows the evidence, and says plainly that the label describes the past, not a forecast (see `findings.md`, Q2). |
 | **Hover a dot for the exact value** | Exact numbers are there when you want them without crowding the chart. |
 | **Loading and error messages** | Live data can fail. The page says so instead of showing an empty box. |
-| **Scales to the screen width** | The chart uses an SVG `viewBox`, so it shrinks to fit a phone without a sideways scroll. |
+| **Fits the screen width** | The chart is drawn at its real width (and redrawn when the window is resized), so the text stays readable on a phone and there's no sideways scroll. |
 
 ## The trend rule
 
-`js/trend.js`: compare the latest AQI with the value 3 hours earlier. A rise of more than 10 points is **Worsening**, a fall of more than 10 is **Improving**, anything else is **Stable**. The rule lives in one file that the page and the reliability test (`docs/backtest.js`) both use, so they can never disagree. `findings.md` (Q2) tests this rule and 11 other versions, and recommends 1 hour / 5 points.
+`js/trend.js`: compare the latest AQI with the value 1 hour earlier. A rise of more than 5 points is **Worsening**, a fall of more than 5 is **Improving**, anything else is **Stable**. The rule lives in one file that the page and the reliability test (`docs/backtest.js`) both use, so they can never disagree.
+
+We started with 3 hours / 10 points. `findings.md` (Q2) tested that rule and 11 other versions, and 1 hour / 5 points worked best, so we switched (issue #17).
 
 ## Testing
 

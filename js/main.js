@@ -179,9 +179,10 @@ function drawChart(points, trend) {
       .attr("height", height - margin.top - margin.bottom);
     svg.append("text")
       .attr("class", "trend-window-label")
-      .attr("x", (x(start.time) + x(end.time)) / 2)
+      // right-aligned so it stays inside the chart even when the window is narrow
+      .attr("x", x(end.time) - 4)
       .attr("y", height - margin.bottom - 6)
-      .attr("text-anchor", "middle")
+      .attr("text-anchor", "end")
       .text("last " + TREND_RULE.hours + " h");
   }
 
@@ -231,7 +232,7 @@ function drawChart(points, trend) {
       .attr("cy", y(trend.start.aqi))
       .attr("r", 5)
       .append("title")
-      .text(TREND_RULE.hours + " hours ago: AQI " + trend.start.aqi);
+      .text(hoursText(TREND_RULE.hours) + " ago: AQI " + trend.start.aqi);
   }
 
   // "Now" label on the latest point.
@@ -251,7 +252,7 @@ function showTrend() {
 
   const sign = currentTrend.change > 0 ? "+" : "";
   const detail = document.createElement("small");
-  detail.textContent = "(" + sign + currentTrend.change + " AQI in the last " + TREND_RULE.hours + " hours)";
+  detail.textContent = "(" + sign + currentTrend.change + " AQI in the last " + hoursText(TREND_RULE.hours) + ")";
 
   trendBox.style.background = TREND_COLORS[currentTrend.label];
   trendBox.replaceChildren(TREND_ARROWS[currentTrend.label] + " " + currentTrend.label, detail);
