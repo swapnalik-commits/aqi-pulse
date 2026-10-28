@@ -1,6 +1,5 @@
 const placeSelect = document.querySelector("#place");
 const sections = [
-  document.querySelector("#map p"),
   document.querySelector("#chart p"),
   document.querySelector("#summary p")
 ];
@@ -42,8 +41,9 @@ let requestCount = 0;
 
 function showPlace() {
   const placeName = placeSelect.selectedOptions[0].textContent;
-  sections[0].textContent = "Fires for " + placeName + " will appear here.";
-  sections[2].textContent = "Trend for " + placeName + " will appear here.";
+  showFires(placeSelect.value, placeName);
+  loadWind(placeSelect.value, placeName);
+  sections[1].textContent = "Trend for " + placeName + " will appear here.";
   loadAirQuality(placeSelect.value, placeName);
 }
 
@@ -52,11 +52,11 @@ async function loadAirQuality(coords, placeName) {
   const [lat, lon] = coords.split(",");
   const thisRequest = ++requestCount;
 
-  sections[1].textContent = "Loading air quality for " + placeName + "…";
+  sections[0].textContent = "Loading air quality for " + placeName + "…";
   nowTitle.textContent = "Checking the air in " + placeName + "…";
   nowAqi.hidden = true;
   skyBand.style.removeProperty("--level");
-  sections[1].hidden = false;
+  sections[0].hidden = false;
   trendBox.hidden = true;
   adviceBox.hidden = true;
   updatedBox.textContent = "";
@@ -87,12 +87,12 @@ async function loadAirQuality(coords, placeName) {
       .map(p => ({ time: new Date((p.t + offset) * 1000), aqi: p.aqi }));
 
     if (points.length < 2) {
-      sections[1].textContent = "No recent air-quality data for " + placeName + ".";
+      sections[0].textContent = "No recent air-quality data for " + placeName + ".";
       nowTitle.textContent = "No recent air-quality data for " + placeName + ".";
       return;
     }
 
-    sections[1].hidden = true;
+    sections[0].hidden = true;
     currentTrend = trendFor(points);
     lastPoints = points;
     drawChart(points, currentTrend);
@@ -102,7 +102,7 @@ async function loadAirQuality(coords, placeName) {
   } catch (error) {
     if (thisRequest !== requestCount) return;
     const reason = error.name === "TimeoutError" ? "the request timed out" : error.message;
-    sections[1].textContent = "Could not load air quality for " + placeName +
+    sections[0].textContent = "Could not load air quality for " + placeName +
       " (" + reason + "). Try again in a minute.";
     nowTitle.textContent = "Couldn't load air quality for " + placeName + ". Try again in a minute.";
   }
