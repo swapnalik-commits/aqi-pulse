@@ -233,31 +233,57 @@ main {
   font-size: 0.9rem;
 }
 
-.map-legend {
+/* Legends under the map and the chart */
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}
+
+.legend li {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin: 10px 0 0;
-  font-size: 0.85rem;
+  gap: 6px;
 }
 
 .legend-fire,
-.legend-place {
+.legend-place,
+.legend-swatch {
   display: inline-block;
+  flex: 0 0 auto;
   width: 12px;
   height: 12px;
   border-radius: 50%;
 }
 
+.legend-swatch {
+  border-radius: 3px;
+  box-shadow: inset 0 0 0 1px rgb(29 36 51 / 25%);
+}
+
+.legend-wind {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  color: var(--sky);
+}
+
+.legend-wind path {
+  fill: currentColor;
+}
+
 .legend-fire {
-  margin-left: 4px;
   background: #f07824;
   border: 2px solid #ffffff;
   box-shadow: 0 0 0 1px #b94d0a;
 }
 
 .legend-place {
-  margin-left: 10px;
   background: #2f5f9e;
   border: 2px solid #ffffff;
   box-shadow: 0 0 0 1px #1d2433;

@@ -43,14 +43,19 @@
         <h2>Fires and wind</h2>
         <p id="fire-status" role="status" aria-live="polite">Loading fire detections…</p>
         <div id="fire-map" role="application" aria-label="Map of recent NASA FIRMS fire detections"></div>
-        <p class="map-legend"><span class="legend-fire" aria-hidden="true"></span> Recent fire detection <span class="legend-place" aria-hidden="true"></span> Selected place. Wind arrow shows where wind is blowing.</p>
+        <ul class="legend" aria-label="Map legend">
+          <li><span class="legend-fire" aria-hidden="true"></span>Fire spotted by NASA satellites</li>
+          <li><span class="legend-place" aria-hidden="true"></span>Selected place</li>
+          <li><svg class="legend-wind" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 22 22 12 17 2 22Z"/></svg>Wind arrow points where the wind is blowing</li>
+        </ul>
       </section>
 
       <section id="chart" class="panel">
         <h2>Air quality, last 24 hours</h2>
         <p>The AQI chart will appear here.</p>
         <div id="aqi-chart"></div>
-        <p class="note">Hourly US AQI in the place's local time. Bands show the official AQI levels.</p>
+        <ul class="legend" id="aqi-legend" aria-label="US AQI levels"></ul>
+        <p class="note">Hourly US AQI, shown in the place's local time.</p>
       </section>
     </div>
 
@@ -70,5 +75,6 @@
   <script src="js/fires.js"></script>
   <script src="js/trend.js"></script>
   <script src="js/main.js"></script>
+  <script src="js/legend.js"></script>
 </body>
 </html>
