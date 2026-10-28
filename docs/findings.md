@@ -4,7 +4,47 @@ Answers to the three research questions from the project proposal.
 
 ## Q1. Do nearby fires and wind move with air quality? (issue #9)
 
-_To be added._
+### Short answer
+
+**Sometimes, and only as a clue — not as proof.** When recent FIRMS detections sit roughly **upwind** of a place and the short-term AQI trend is **Worsening**, the dashboard picture matches the story people expect (smoke carried toward the city). The same pattern does **not** always hold: fires can appear with **Stable** air, wind can blow away from the detections, and AQI can worsen with **no** nearby hotspots on the map.
+
+### How we checked it
+
+We used the finished dashboard (issues #3–#8) for Los Angeles, Denver, and Seattle:
+
+1. Count recent NASA FIRMS detections within about 275 km (or note DEMO SAMPLE when no `MAP_KEY` is set).
+2. Read wind toward-direction and speed from Open-Meteo.
+3. Count how many mapped fires sit roughly upwind of the selected place (bearing from fire → place within about 45° of the wind-toward direction).
+4. Compare that with the short-term US AQI trend label and the last 24-hour chart.
+
+We also refreshed the page after changing place, to confirm the three feeds redraw together.
+
+### What we saw
+
+| Picture on the page | What it suggests | How often it lined up |
+|---|---|---|
+| Fires upwind + AQI Worsening | Smoke may be arriving | Sometimes — the clearest “yes” cases |
+| Fires nearby but not upwind + Stable/Improving | Hotspots exist, but wind is not aiming them at the city | Common |
+| No nearby fires + AQI Worsening | Something else is driving the air (urban pollution, distant smoke, model noise) | Happens |
+| DEMO SAMPLE fires | Layout test only | Not used as evidence for the science claim |
+
+### Examples (how to read the page)
+
+- **Supports the idea:** several live detections, wind arrow pointing from that cluster toward the city, and a Worsening badge with a rising chart. The “What changed” text then says some fires are upwind and air quality is worsening.
+- **Does not support a simple link:** detections on the map, but the story says they are **not** clearly upwind, and AQI is Stable — fires alone are not enough.
+- **Counterexample shape:** Worsening AQI with **zero** nearby FIRMS dots — the trend needs another explanation that day.
+
+### Limits
+
+- FIRMS dots are **satellite hotspots**, not confirmed fire perimeters, and they update on a delay (see Q3).
+- Open-Meteo US AQI is a **model** product, not a local ground monitor.
+- Wind is a single surface reading at the city; real smoke paths can be more complex.
+- Demo mode must not be treated as real fire activity.
+- Three cities and short live looks are enough to **illustrate** the relationship, not to prove it statistically across a season.
+
+### What this means for the page
+
+The map, wind arrow, and trend label should be read **together**. The “What changed” panel (issue #8) is written in past tense for that reason: it describes the current picture, not a forecast that fires plus wind will always make the air worse.
 
 ## Q2. Can the Worsening / Stable / Improving label be trusted? (issue #10)
 
