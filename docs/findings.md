@@ -12,7 +12,7 @@ _To be added._
 
 ### Short answer
 
-**Partly.** The label is a correct description of the **last 3 hours**. As a hint about the **next** 3 hours, though, it is weak:
+**Partly.** With the original 3-hour rule, the label was a correct description of what had **just happened**, but as a hint about the **next** few hours it was weak:
 
 - **"Stable" can be trusted.** After a "Stable" label, the air stayed stable 89% to 99.8% of the time.
 - **"Improving" is fairly safe.** After "Improving", the AQI did not go back up 80% to 88% of the time (in the places where it showed up often enough to judge).
