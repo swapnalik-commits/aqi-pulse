@@ -1,8 +1,7 @@
 const placeSelect = document.querySelector("#place");
-const sections = [
-  document.querySelector("#chart p"),
-  document.querySelector("#summary p")
-];
+const refreshBtn = document.querySelector("#refresh");
+const chartStatus = document.querySelector("#chart p");
+const storyBox = document.querySelector("#story");
 
 const chartBox = document.querySelector("#aqi-chart");
 const trendBox = document.querySelector("#trend");
@@ -15,6 +14,8 @@ const updatedBox = document.querySelector("#updated");
 // Latest trend for the selected place (the "What changed" text can reuse it).
 let currentTrend = null;
 let lastPoints = null;
+let lastPlaceName = "";
+let airReady = false;
 
 // US EPA AQI levels: used for the chart bands and the health message.
 const AQI_LEVELS = [
@@ -39,12 +40,97 @@ function levelFor(aqi) {
 // Used to ignore a slow response if the user has already picked another place.
 let requestCount = 0;
 
+function markUpdated() {
+  updatedBox.textContent = "Updated " + new Date().toLocaleTimeString([], {
+    hour: "numeric",
+    minute: "2-digit"
+  }) + " (your time).";
+}
+
+function hoursLabel(n) {
+  return typeof hoursText === "function" ? hoursText(n) : (n === 1 ? "1 hour" : n + " hours");
+}
+
+// Plain-language summary for issue #8.
+function updateStory() {
+  const placeName = lastPlaceName || placeSelect.selectedOptions[0].textContent;
+  const parts = [];
+
+  if (latestFireInfo.error) {
+    parts.push("Fire detections could not be loaded for " + placeName + ".");
+  } else if (latestFireInfo.count === null) {
+    parts.push("Loading nearby fire detections for " + placeName + "…");
+  } else if (latestFireInfo.demo) {
+    parts.push(
+      latestFireInfo.count
+        ? "DEMO SAMPLE: " + latestFireInfo.count + " example fire location" +
+          (latestFireInfo.count === 1 ? "" : "s") + " near " + placeName +
+          " (not live satellite detections)."
+        : "DEMO SAMPLE: no example fires near " + placeName + "."
+    );
+  } else if (latestFireInfo.count === 0) {
+    parts.push("No recent NASA FIRMS fire detections were found near " + placeName + ".");
+  } else {
+    parts.push(
+      latestFireInfo.count + " recent fire detection" +
+      (latestFireInfo.count === 1 ? " was" : "s were") +
+      " found within about 275 km of " + placeName + "."
+    );
+  }
+
+  if (windReading.speed === null) {
+    parts.push(windReading.message || "Wind is still loading.");
+  } else {
+    let windLine = "The wind is blowing toward " + windReading.compass +
+      " at " + windReading.speed + " km/h.";
+    const upwind = countUpwindFires();
+    if (upwind !== null && latestFireInfo.count > 0) {
+      windLine += upwind > 0
+        ? " About " + upwind + " of the mapped fire" + (upwind === 1 ? "" : "s") +
+          " sit roughly upwind, so smoke could be carried toward " + placeName + "."
+        : " Those detections are not clearly upwind of " + placeName +
+          " right now, so the wind may not be carrying that smoke toward the city.";
+    }
+    parts.push(windLine);
+  }
+
+  if (!airReady) {
+    parts.push("Air quality is still loading.");
+  } else if (currentTrend) {
+    const sign = currentTrend.change > 0 ? "+" : "";
+    parts.push(
+      "Air quality is " + currentTrend.label.toLowerCase() +
+      " (" + sign + currentTrend.change + " AQI in the last " +
+      hoursLabel(TREND_RULE.hours) + ")."
+    );
+  } else if (lastPoints && lastPoints.length) {
+    parts.push(
+      "Current US AQI is " + lastPoints[lastPoints.length - 1].aqi +
+      ", but there is not enough hourly data to label a short-term trend."
+    );
+  } else {
+    parts.push("Air quality data is unavailable right now.");
+  }
+
+  storyBox.textContent = parts.join(" ");
+}
+
 function showPlace() {
   const placeName = placeSelect.selectedOptions[0].textContent;
+  lastPlaceName = placeName;
+  airReady = false;
+  currentTrend = null;
+  lastPoints = null;
+  updatedBox.textContent = "Refreshing…";
+  if (refreshBtn) refreshBtn.disabled = true;
   showFires(placeSelect.value, placeName);
   loadWind(placeSelect.value, placeName);
-  sections[1].textContent = "Trend for " + placeName + " will appear here.";
-  loadAirQuality(placeSelect.value, placeName);
+  loadAirQuality(placeSelect.value, placeName).finally(function () {
+    if (refreshBtn) refreshBtn.disabled = false;
+    markUpdated();
+    updateStory();
+  });
+  updateStory();
 }
 
 // Get hourly US AQI from Open-Meteo (free, no API key).
@@ -52,17 +138,18 @@ async function loadAirQuality(coords, placeName) {
   const [lat, lon] = coords.split(",");
   const thisRequest = ++requestCount;
 
-  sections[0].textContent = "Loading air quality for " + placeName + "…";
+  chartStatus.textContent = "Loading air quality for " + placeName + "…";
   nowTitle.textContent = "Checking the air in " + placeName + "…";
   nowAqi.hidden = true;
   skyBand.style.removeProperty("--level");
-  sections[0].hidden = false;
+  chartStatus.hidden = false;
   trendBox.hidden = true;
   adviceBox.hidden = true;
-  updatedBox.textContent = "";
   chartBox.replaceChildren();
   currentTrend = null;
   lastPoints = null;
+  airReady = false;
+  updateStory();
 
   const url = "https://air-quality-api.open-meteo.com/v1/air-quality" +
     "?latitude=" + lat + "&longitude=" + lon +
@@ -87,24 +174,29 @@ async function loadAirQuality(coords, placeName) {
       .map(p => ({ time: new Date((p.t + offset) * 1000), aqi: p.aqi }));
 
     if (points.length < 2) {
-      sections[0].textContent = "No recent air-quality data for " + placeName + ".";
+      chartStatus.textContent = "No recent air-quality data for " + placeName + ".";
       nowTitle.textContent = "No recent air-quality data for " + placeName + ".";
+      airReady = true;
+      updateStory();
       return;
     }
 
-    sections[0].hidden = true;
+    chartStatus.hidden = true;
     currentTrend = trendFor(points);
     lastPoints = points;
+    airReady = true;
     drawChart(points, currentTrend);
     showTrend();
     showNow(points[points.length - 1], placeName);
-    updatedBox.textContent = "Updated " + new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) + " (your time).";
+    updateStory();
   } catch (error) {
     if (thisRequest !== requestCount) return;
     const reason = error.name === "TimeoutError" ? "the request timed out" : error.message;
-    sections[0].textContent = "Could not load air quality for " + placeName +
+    chartStatus.textContent = "Could not load air quality for " + placeName +
       " (" + reason + "). Try again in a minute.";
     nowTitle.textContent = "Couldn't load air quality for " + placeName + ". Try again in a minute.";
+    airReady = true;
+    updateStory();
   }
 }
 
@@ -179,9 +271,10 @@ function drawChart(points, trend) {
       .attr("height", height - margin.top - margin.bottom);
     svg.append("text")
       .attr("class", "trend-window-label")
-      .attr("x", (x(start.time) + x(end.time)) / 2)
+      // right-aligned so it stays inside the chart even when the window is narrow
+      .attr("x", x(end.time) - 4)
       .attr("y", height - margin.bottom - 6)
-      .attr("text-anchor", "middle")
+      .attr("text-anchor", "end")
       .text("last " + TREND_RULE.hours + " h");
   }
 
@@ -231,7 +324,7 @@ function drawChart(points, trend) {
       .attr("cy", y(trend.start.aqi))
       .attr("r", 5)
       .append("title")
-      .text(TREND_RULE.hours + " hours ago: AQI " + trend.start.aqi);
+      .text(hoursLabel(TREND_RULE.hours) + " ago: AQI " + trend.start.aqi);
   }
 
   // "Now" label on the latest point.
@@ -251,7 +344,7 @@ function showTrend() {
 
   const sign = currentTrend.change > 0 ? "+" : "";
   const detail = document.createElement("small");
-  detail.textContent = "(" + sign + currentTrend.change + " AQI in the last " + TREND_RULE.hours + " hours)";
+  detail.textContent = "(" + sign + currentTrend.change + " AQI in the last " + hoursLabel(TREND_RULE.hours) + ")";
 
   trendBox.style.background = TREND_COLORS[currentTrend.label];
   trendBox.replaceChildren(TREND_ARROWS[currentTrend.label] + " " + currentTrend.label, detail);
@@ -283,4 +376,5 @@ window.addEventListener("resize", () => {
 });
 
 placeSelect.addEventListener("change", showPlace);
+if (refreshBtn) refreshBtn.addEventListener("click", showPlace);
 showPlace();

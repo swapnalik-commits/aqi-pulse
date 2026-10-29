@@ -7,6 +7,39 @@ let fireFeatureCollection = { type: "FeatureCollection", features: [] };
 let selectedPlaceMarker = null;
 let windMarker = null;
 let windReading = { message: "Loading wind...", speed: null, direction: null };
+// Shared with the "What changed" story in main.js.
+let latestFireInfo = { placeName: "", count: null, demo: false, error: null };
+
+function notifyStory() {
+  if (typeof updateStory === "function") updateStory();
+}
+
+function bearingDegrees(fromLat, fromLon, toLat, toLon) {
+  const φ1 = fromLat * Math.PI / 180;
+  const φ2 = toLat * Math.PI / 180;
+  const Δλ = (toLon - fromLon) * Math.PI / 180;
+  const y = Math.sin(Δλ) * Math.cos(φ2);
+  const x = Math.cos(φ1) * Math.sin(φ2) - Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ);
+  return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+}
+
+function angleDiff(a, b) {
+  return Math.abs(((a - b + 540) % 360) - 180);
+}
+
+// Count fires that sit roughly upwind of the place (smoke can blow toward it).
+function countUpwindFires() {
+  if (windReading.speed === null || windReading.direction === null) return null;
+  const toward = windReading.direction;
+  let upwind = 0;
+  fireFeatureCollection.features.forEach(function (fire) {
+    const lon = fire.geometry.coordinates[0];
+    const lat = fire.geometry.coordinates[1];
+    const bear = bearingDegrees(lat, lon, selectedPlace.latitude, selectedPlace.longitude);
+    if (angleDiff(bear, toward) <= 45) upwind += 1;
+  });
+  return upwind;
+}
 
 const fireMap = new maplibregl.Map({
   container: "fire-map",
@@ -159,10 +192,12 @@ async function loadWind(coords, placeName) {
     };
 
     renderWindMarker();
+    notifyStory();
   } catch (error) {
     if (thisRequest !== windRequestCount) return;
     windReading = { message: "Wind unavailable for " + placeName, speed: null, direction: null };
     renderWindMarker();
+    notifyStory();
   }
 }
 
@@ -170,14 +205,18 @@ async function showFires(coords, placeName) {
   const [latitude, longitude] = coords.split(",").map(Number);
   const thisRequest = ++fireRequestCount;
   selectedPlace = { name: placeName, latitude, longitude };
+  latestFireInfo = { placeName: placeName, count: null, demo: false, error: null };
   renderWindMarker();
   fireMap.easeTo({ center: [longitude, latitude], zoom: 7 });
   setPlaceMarker();
   setFireFeatures([]);
   fireStatus.textContent = "Loading recent NASA FIRMS detections near " + placeName + "…";
+  notifyStory();
 
   if (window.location.protocol === "file:") {
     fireStatus.textContent = "Start the local app with python server.py, then open http://127.0.0.1:8000.";
+    latestFireInfo.error = "Open the page through the local server to load fires.";
+    notifyStory();
     return;
   }
 
@@ -200,6 +239,7 @@ async function showFires(coords, placeName) {
     })));
 
     const count = detections.length;
+    latestFireInfo = { placeName: placeName, count: count, demo: Boolean(result.demo), error: null };
     if (result.demo) {
       fireStatus.textContent = count
         ? "DEMO SAMPLE: " + count + " example fire locations near " + placeName + ". These are not real or live detections."
@@ -210,8 +250,11 @@ async function showFires(coords, placeName) {
           " within about 275 km of " + placeName + ". FIRMS satellite detections are hotspots, not confirmed fire perimeters."
         : "No recent NASA FIRMS detections found near " + placeName + ".";
     }
+    notifyStory();
   } catch (error) {
     if (thisRequest !== fireRequestCount) return;
     fireStatus.textContent = "Could not load fire detections for " + placeName + " (" + error.message + ").";
+    latestFireInfo = { placeName: placeName, count: null, demo: false, error: error.message };
+    notifyStory();
   }
 }

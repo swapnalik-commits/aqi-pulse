@@ -5,8 +5,8 @@
 // Used by both the page and docs/backtest.js, so change the rule only here.
 
 const TREND_RULE = {
-  hours: 3,      // how far back to compare
-  threshold: 10  // AQI points needed to count as a change
+  hours: 1,     // how far back to compare (1 hour tested best, see docs/findings.md)
+  threshold: 5  // AQI points needed to count as a change
 };
 
 // Arrows so the label doesn't rely on red/green alone.
@@ -28,6 +28,11 @@ function labelForChange(change) {
   return "Stable";
 }
 
+// "1 hour" / "3 hours", for text on the page
+function hoursText(n) {
+  return n === 1 ? "1 hour" : n + " hours";
+}
+
 // values = hourly AQI, oldest first. Returns null if there isn't enough data.
 function getTrend(values) {
   const clean = values.filter(v => v !== null && v !== undefined);
@@ -39,5 +44,5 @@ function getTrend(values) {
 }
 
 if (typeof module !== "undefined") {
-  module.exports = { TREND_RULE, TREND_COLORS, TREND_ARROWS, labelForChange, getTrend };
+  module.exports = { TREND_RULE, TREND_COLORS, TREND_ARROWS, labelForChange, getTrend, hoursText };
 }

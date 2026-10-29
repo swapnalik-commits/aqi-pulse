@@ -1,10 +1,10 @@
-// Checks how reliable the trend label is (research question 2).
+﻿// Checks how reliable the trend label is (research question 2).
 // Run from the project folder (Node 18+):  node docs/backtest.js
 //
 // For each place: get 92 days of hourly AQI, work out the label the page would
 // have shown each hour, then compare it with what actually happened next.
 
-const { TREND_RULE, labelForChange } = require("../js/trend.js");
+const { TREND_RULE, labelForChange, hoursText } = require("../js/trend.js");
 
 const PLACES = [
   { name: "Los Angeles", lat: 34.05, lon: -118.24 },
@@ -55,7 +55,7 @@ async function main() {
     throw new Error("This script needs Node 18 or newer (for the built-in fetch).");
   }
 
-  console.log("Rule: AQI now vs " + H + " hours ago, change of more than " +
+  console.log("Rule: AQI now vs " + hoursText(H) + " ago, change of more than " +
     TREND_RULE.threshold + " points = Worsening / Improving, otherwise Stable.\n");
 
   const allSeries = [];
