@@ -48,8 +48,7 @@ function markUpdated() {
 }
 
 function hoursLabel(n) {
-  if (typeof hoursText === "function") return hoursText(n);
-  return n === 1 ? "1 hour" : n + " hours";
+  return typeof hoursText === "function" ? hoursText(n) : (n === 1 ? "1 hour" : n + " hours");
 }
 
 // Plain-language summary for issue #8.
@@ -272,9 +271,10 @@ function drawChart(points, trend) {
       .attr("height", height - margin.top - margin.bottom);
     svg.append("text")
       .attr("class", "trend-window-label")
-      .attr("x", (x(start.time) + x(end.time)) / 2)
+      // right-aligned so it stays inside the chart even when the window is narrow
+      .attr("x", x(end.time) - 4)
       .attr("y", height - margin.bottom - 6)
-      .attr("text-anchor", "middle")
+      .attr("text-anchor", "end")
       .text("last " + TREND_RULE.hours + " h");
   }
 
@@ -324,7 +324,7 @@ function drawChart(points, trend) {
       .attr("cy", y(trend.start.aqi))
       .attr("r", 5)
       .append("title")
-      .text(TREND_RULE.hours + " hours ago: AQI " + trend.start.aqi);
+      .text(hoursLabel(TREND_RULE.hours) + " ago: AQI " + trend.start.aqi);
   }
 
   // "Now" label on the latest point.

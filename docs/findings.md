@@ -28,11 +28,29 @@ We also refreshed the page after changing place, to confirm the three feeds redr
 | No nearby fires + AQI Worsening | Something else is driving the air (urban pollution, distant smoke, model noise) | Happens |
 | DEMO SAMPLE fires | Layout test only | Not used as evidence for the science claim |
 
-### Examples (how to read the page)
+### Examples with screenshots (captured from the live page)
 
-- **Supports the idea:** several live detections, wind arrow pointing from that cluster toward the city, and a Worsening badge with a rising chart. The “What changed” text then says some fires are upwind and air quality is worsening.
-- **Does not support a simple link:** detections on the map, but the story says they are **not** clearly upwind, and AQI is Stable — fires alone are not enough.
-- **Counterexample shape:** Worsening AQI with **zero** nearby FIRMS dots — the trend needs another explanation that day.
+Captured on **29 Oct 2026** with a real `MAP_KEY` (live FIRMS, not DEMO SAMPLE). These two views show why fires + wind alone do not prove that air quality is getting worse.
+
+#### Example 1 — Los Angeles: some fires upwind, but AQI Stable
+
+![Los Angeles dashboard showing 9 nearby fires, wind toward SW, and Stable AQI](images/q1-los-angeles.png)
+
+- **9** recent FIRMS detections within ~275 km; about **3** sit roughly upwind.
+- Wind toward **SW** at **1.1 km/h**.
+- US AQI **66** (Moderate), trend **Stable (0 AQI in the last 1 hour)**.
+- **Reading:** smoke *could* be carried toward the city, but the short-term label is not Worsening. Nearby fires are a clue, not proof.
+
+#### Example 2 — Seattle: many fires nearby, air still Good / Stable
+
+![Seattle dashboard showing 52 nearby fires, wind toward NW, and Stable AQI](images/q1-seattle.png)
+
+- **52** recent FIRMS detections within ~275 km; about **4** sit roughly upwind.
+- Wind toward **NW** at **5.4 km/h**.
+- US AQI **27** (Good), trend **Stable (+1 AQI in the last 1 hour)**.
+- **Reading:** a busy fire map can still pair with good, stable air. Count of dots ≠ hazard by itself; wind, distance, and the AQI chart have to be read together.
+
+**What a “supports the idea” case would look like** (not seen in these two captures): several upwind detections **and** a Worsening badge with a rising AQI chart. When that appears, the “What changed” text says some fires are upwind and air quality is worsening.
 
 ### Limits
 
@@ -48,9 +66,11 @@ The map, wind arrow, and trend label should be read **together**. The “What ch
 
 ## Q2. Can the Worsening / Stable / Improving label be trusted? (issue #10)
 
+> **Update (issue #17 / PR overlap fix):** based on these results, the page now uses the **1 hour / 5 points** rule. The first tables below test the original 3 hours / 10 points rule; the table under "Testing other versions of the rule" shows why we switched. This branch also includes Kriti's `hoursText` wording so #22 and #23 do not fight over the same `main.js` lines.
+
 ### Short answer
 
-**Partly.** The label is a correct description of the **last 3 hours**. As a hint about the **next** 3 hours, though, it is weak:
+**Partly.** With the original 3-hour rule, the label was a correct description of what had **just happened**, but as a hint about the **next** few hours it was weak:
 
 - **"Stable" can be trusted.** After a "Stable" label, the air stayed stable 89% to 99.8% of the time.
 - **"Improving" is fairly safe.** After "Improving", the AQI did not go back up 80% to 88% of the time (in the places where it showed up often enough to judge).
@@ -59,11 +79,11 @@ The map, wind arrow, and trend label should be read **together**. The “What ch
 
 - **A shorter window works better.** When we tested 12 versions of the rule (below), comparing with **1 hour** ago instead of 3 made "Worsening" hold up 93% to 100% of the time. A 1-hour, 5-point rule was the only version that beat "always Stable".
 
-**What this means for the page:** the label should be read as "what just happened", not "what will happen". That's why the page shows it as, for example, "Worsening (+12 AQI in the last 3 hours)". The "What changed" text (issue #8) should use the same past-tense wording.
+**What this means for the page:** the label should be read as "what just happened", not "what will happen". That's why the page shows the change next to the label, for example "Worsening (+8 AQI in the last 1 hour)". The "What changed" text (issue #8) should use the same past-tense wording.
 
-### The rule being tested (issue #7, `js/trend.js`)
+### The rule we tested first (issue #7)
 
-Compare the latest hourly US AQI with the value 3 hours earlier:
+Compare the latest hourly US AQI with the value 3 hours earlier. (The page now uses 1 hour and 5 points instead; see the update above.)
 
 | Change in 3 hours | Label |
 |---|---|
@@ -127,7 +147,7 @@ What the table shows:
 - **1 hour with 5 points is the only rule that beats "always Stable"** (96.6% vs 95.5%). It still flags real changes often (151 times in 92 days across three cities). With 15 or 20 points the label almost never changes, which makes it useless.
 - **Caveat:** US AQI changes smoothly from hour to hour, so a short window partly works because the next hour usually looks like the last one. It tells you "this is happening now", not a long-range forecast.
 
-**Recommendation:** switch the page rule to **1 hour / 5 points**. It's a two-number change in `js/trend.js` (`hours: 1, threshold: 5`), and every part of the page, plus this test, reads from that file. We kept 3 hours / 10 points for now because issues #8 and #11 were written around it, so the team should agree on the change first.
+**Decision:** the team agreed to switch the page rule to **1 hour / 5 points** (issue #17). It's set in `js/trend.js` (`hours: 1, threshold: 5`), and every part of the page, plus this test, reads from that file.
 
 ### Examples (local time)
 
