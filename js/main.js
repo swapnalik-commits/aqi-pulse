@@ -47,10 +47,6 @@ function markUpdated() {
   }) + " (your time).";
 }
 
-function hoursLabel(n) {
-  return typeof hoursText === "function" ? hoursText(n) : (n === 1 ? "1 hour" : n + " hours");
-}
-
 // Plain-language summary for issue #8.
 function updateStory() {
   const placeName = lastPlaceName || placeSelect.selectedOptions[0].textContent;
@@ -101,7 +97,7 @@ function updateStory() {
     parts.push(
       "Air quality is " + currentTrend.label.toLowerCase() +
       " (" + sign + currentTrend.change + " AQI in the last " +
-      hoursLabel(TREND_RULE.hours) + ")."
+      hoursText(TREND_RULE.hours) + ")."
     );
   } else if (lastPoints && lastPoints.length) {
     parts.push(
@@ -324,7 +320,7 @@ function drawChart(points, trend) {
       .attr("cy", y(trend.start.aqi))
       .attr("r", 5)
       .append("title")
-      .text(hoursLabel(TREND_RULE.hours) + " ago: AQI " + trend.start.aqi);
+      .text(hoursText(TREND_RULE.hours) + " ago: AQI " + trend.start.aqi);
   }
 
   // "Now" label on the latest point.
@@ -344,7 +340,7 @@ function showTrend() {
 
   const sign = currentTrend.change > 0 ? "+" : "";
   const detail = document.createElement("small");
-  detail.textContent = "(" + sign + currentTrend.change + " AQI in the last " + hoursLabel(TREND_RULE.hours) + ")";
+  detail.textContent = "(" + sign + currentTrend.change + " AQI in the last " + hoursText(TREND_RULE.hours) + ")";
 
   trendBox.style.background = TREND_COLORS[currentTrend.label];
   trendBox.replaceChildren(TREND_ARROWS[currentTrend.label] + " " + currentTrend.label, detail);

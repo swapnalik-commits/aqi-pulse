@@ -66,7 +66,7 @@ The map, wind arrow, and trend label should be read **together**. The “What ch
 
 ## Q2. Can the Worsening / Stable / Improving label be trusted? (issue #10)
 
-> **Update (issue #17 / PR overlap fix):** based on these results, the page now uses the **1 hour / 5 points** rule. The first tables below test the original 3 hours / 10 points rule; the table under "Testing other versions of the rule" shows why we switched. This branch also includes Kriti's `hoursText` wording so #22 and #23 do not fight over the same `main.js` lines.
+> **Update (issue #17):** based on these results, the page now uses the **1 hour / 5 points** rule. The first tables below test the original 3 hours / 10 points rule; the table under "Testing other versions of the rule" shows why we switched.
 
 ### Short answer
 
