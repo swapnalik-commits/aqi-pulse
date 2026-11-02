@@ -261,6 +261,77 @@ main {
   font-size: 0.9rem;
 }
 
+/* Loading / empty / error messages (issue #16) */
+.status-msg {
+  margin: 0 0 10px;
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
+.status-msg.is-loading {
+  color: var(--ink-soft);
+}
+
+.status-msg.is-empty {
+  color: var(--ink-soft);
+}
+
+.status-msg.is-error {
+  color: #9b1c1c;
+  background: #fdecec;
+  border: 1px solid #f3c1c1;
+  border-radius: var(--radius-small);
+  padding: 10px 12px;
+}
+
+.status-msg.is-ok {
+  color: var(--ink-soft);
+}
+
+#chart-status[hidden] {
+  display: none;
+}
+
+.chart-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 180px;
+  margin: 0;
+  padding: 16px;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius-small);
+  background: #f8fafc;
+  text-align: center;
+}
+
+.sky.is-loading #now-title,
+.sky.is-empty #now-title {
+  color: var(--ink-soft);
+}
+
+.sky.is-error {
+  --level: #f3c1c1;
+}
+
+#story.status-msg {
+  margin: 0;
+  max-width: 70ch;
+  font-size: 1.05rem;
+  color: var(--ink);
+  background: transparent;
+  border: none;
+  padding: 0;
+}
+
+#story.status-msg.is-error {
+  color: #9b1c1c;
+  background: #fdecec;
+  border: 1px solid #f3c1c1;
+  border-radius: var(--radius-small);
+  padding: 12px 14px;
+}
+
 /* Legends under the map and the chart */
 .legend {
   display: flex;
