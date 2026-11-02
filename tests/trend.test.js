@@ -1,4 +1,4 @@
-// Tests for the trend rule. Run from the project folder:  node --test
+﻿// Tests for the trend rule. Run from the project folder:  node --test
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { TREND_RULE, labelForChange, getTrend, hoursText } = require("../js/trend.js");

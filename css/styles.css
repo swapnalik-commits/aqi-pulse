@@ -77,6 +77,34 @@ a {
   cursor: pointer;
 }
 
+.refresh-btn {
+  font: inherit;
+  font-weight: 600;
+  padding: 8px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-small);
+  background: var(--sky);
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.refresh-btn:hover {
+  filter: brightness(1.05);
+}
+
+.refresh-btn:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+#story {
+  margin: 0;
+  max-width: 70ch;
+  font-size: 1.05rem;
+  color: var(--ink);
+  line-height: 1.55;
+}
+
 main {
   max-width: 1120px;
   margin: 0 auto;

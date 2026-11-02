@@ -1,4 +1,4 @@
-// Checks how reliable the trend label is (research question 2).
+﻿// Checks how reliable the trend label is (research question 2).
 // Run from the project folder (Node 18+):  node docs/backtest.js
 //
 // For each place: get 92 days of hourly AQI, work out the label the page would

@@ -1,4 +1,4 @@
-# Design notes: Air quality chart and trend label
+﻿# Design notes: Air quality chart and trend label
 
 Issues #4 and #7. Why the air-quality part of the page looks the way it does.
 

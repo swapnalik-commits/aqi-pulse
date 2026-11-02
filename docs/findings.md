@@ -4,7 +4,65 @@ Answers to the three research questions from the project proposal.
 
 ## Q1. Do nearby fires and wind move with air quality? (issue #9)
 
-_To be added._
+### Short answer
+
+**Sometimes, and only as a clue — not as proof.** When recent FIRMS detections sit roughly **upwind** of a place and the short-term AQI trend is **Worsening**, the dashboard picture matches the story people expect (smoke carried toward the city). The same pattern does **not** always hold: fires can appear with **Stable** air, wind can blow away from the detections, and AQI can worsen with **no** nearby hotspots on the map.
+
+### How we checked it
+
+We used the finished dashboard (issues #3–#8) for Los Angeles, Denver, and Seattle:
+
+1. Count recent NASA FIRMS detections within about 275 km (or note DEMO SAMPLE when no `MAP_KEY` is set).
+2. Read wind toward-direction and speed from Open-Meteo.
+3. Count how many mapped fires sit roughly upwind of the selected place (bearing from fire → place within about 45° of the wind-toward direction).
+4. Compare that with the short-term US AQI trend label and the last 24-hour chart.
+
+We also refreshed the page after changing place, to confirm the three feeds redraw together.
+
+### What we saw
+
+| Picture on the page | What it suggests | How often it lined up |
+|---|---|---|
+| Fires upwind + AQI Worsening | Smoke may be arriving | Sometimes — the clearest “yes” cases |
+| Fires nearby but not upwind + Stable/Improving | Hotspots exist, but wind is not aiming them at the city | Common |
+| No nearby fires + AQI Worsening | Something else is driving the air (urban pollution, distant smoke, model noise) | Happens |
+| DEMO SAMPLE fires | Layout test only | Not used as evidence for the science claim |
+
+### Examples with screenshots (captured from the live page)
+
+Captured on **29 Oct 2026** with a real `MAP_KEY` (live FIRMS, not DEMO SAMPLE). These two views show why fires + wind alone do not prove that air quality is getting worse.
+
+#### Example 1 — Los Angeles: some fires upwind, but AQI Stable
+
+![Los Angeles dashboard showing 9 nearby fires, wind toward SW, and Stable AQI](images/q1-los-angeles.png)
+
+- **9** recent FIRMS detections within ~275 km; about **3** sit roughly upwind.
+- Wind toward **SW** at **1.1 km/h**.
+- US AQI **66** (Moderate), trend **Stable (0 AQI in the last 1 hour)**.
+- **Reading:** smoke *could* be carried toward the city, but the short-term label is not Worsening. Nearby fires are a clue, not proof.
+
+#### Example 2 — Seattle: many fires nearby, air still Good / Stable
+
+![Seattle dashboard showing 52 nearby fires, wind toward NW, and Stable AQI](images/q1-seattle.png)
+
+- **52** recent FIRMS detections within ~275 km; about **4** sit roughly upwind.
+- Wind toward **NW** at **5.4 km/h**.
+- US AQI **27** (Good), trend **Stable (+1 AQI in the last 1 hour)**.
+- **Reading:** a busy fire map can still pair with good, stable air. Count of dots ≠ hazard by itself; wind, distance, and the AQI chart have to be read together.
+
+**What a “supports the idea” case would look like** (not seen in these two captures): several upwind detections **and** a Worsening badge with a rising AQI chart. When that appears, the “What changed” text says some fires are upwind and air quality is worsening.
+
+### Limits
+
+- FIRMS dots are **satellite hotspots**, not confirmed fire perimeters, and they update on a delay (see Q3).
+- Open-Meteo US AQI is a **model** product, not a local ground monitor.
+- Wind is a single surface reading at the city; real smoke paths can be more complex.
+- Demo mode must not be treated as real fire activity.
+- Three cities and short live looks are enough to **illustrate** the relationship, not to prove it statistically across a season.
+
+### What this means for the page
+
+The map, wind arrow, and trend label should be read **together**. The “What changed” panel (issue #8) is written in past tense for that reason: it describes the current picture, not a forecast that fires plus wind will always make the air worse.
 
 ## Q2. Can the Worsening / Stable / Improving label be trusted? (issue #10)
 
