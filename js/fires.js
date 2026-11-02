@@ -1,4 +1,14 @@
 const fireStatus = document.querySelector("#fire-status");
+
+// Shared by map, chart, and story messages (issue #16).
+function setStatus(el, kind, text) {
+  if (!el) return;
+  el.hidden = false;
+  el.textContent = text;
+  el.classList.remove("is-loading", "is-empty", "is-error", "is-ok");
+  if (kind) el.classList.add("is-" + kind);
+}
+
 let fireRequestCount = 0;
 let windRequestCount = 0;
 let mapLoaded = false;
@@ -6,7 +16,7 @@ let selectedPlace = { name: "Los Angeles", latitude: 34.05, longitude: -118.24 }
 let fireFeatureCollection = { type: "FeatureCollection", features: [] };
 let selectedPlaceMarker = null;
 let windMarker = null;
-let windReading = { message: "Loading wind...", speed: null, direction: null };
+let windReading = { message: "Loading wind…", speed: null, direction: null };
 // Shared with the "What changed" story in main.js.
 let latestFireInfo = { placeName: "", count: null, demo: false, error: null };
 
@@ -150,7 +160,7 @@ const COMPASS_POINTS = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
 async function loadWind(coords, placeName) {
   const [latitude, longitude] = coords.split(",").map(Number);
   const thisRequest = ++windRequestCount;
-  windReading = { message: "Loading wind...", speed: null, direction: null };
+  windReading = { message: "Loading wind…", speed: null, direction: null };
   renderWindMarker();
 
   const query = new URLSearchParams({
@@ -195,7 +205,7 @@ async function loadWind(coords, placeName) {
     notifyStory();
   } catch (error) {
     if (thisRequest !== windRequestCount) return;
-    windReading = { message: "Wind unavailable for " + placeName, speed: null, direction: null };
+    windReading = { message: "Could not load wind. Try Refresh.", speed: null, direction: null };
     renderWindMarker();
     notifyStory();
   }
@@ -210,11 +220,11 @@ async function showFires(coords, placeName) {
   fireMap.easeTo({ center: [longitude, latitude], zoom: 7 });
   setPlaceMarker();
   setFireFeatures([]);
-  fireStatus.textContent = "Loading recent NASA FIRMS detections near " + placeName + "…";
+  setStatus(fireStatus, "loading", "Loading fires near " + placeName + "…");
   notifyStory();
 
   if (window.location.protocol === "file:") {
-    fireStatus.textContent = "Start the local app with python server.py, then open http://127.0.0.1:8000.";
+    setStatus(fireStatus, "error", "Could not load fires. Open http://127.0.0.1:8000/ with py server.py running.");
     latestFireInfo.error = "Open the page through the local server to load fires.";
     notifyStory();
     return;
@@ -241,19 +251,29 @@ async function showFires(coords, placeName) {
     const count = detections.length;
     latestFireInfo = { placeName: placeName, count: count, demo: Boolean(result.demo), error: null };
     if (result.demo) {
-      fireStatus.textContent = count
-        ? "DEMO SAMPLE: " + count + " example fire locations near " + placeName + ". These are not real or live detections."
-        : "DEMO SAMPLE: no example fires for " + placeName + ". This is not live FIRMS data.";
+      setStatus(
+        fireStatus,
+        count ? "ok" : "empty",
+        count
+          ? "DEMO SAMPLE: " + count + " example fire location" + (count === 1 ? "" : "s") +
+            " near " + placeName + " (not live)."
+          : "DEMO SAMPLE: no example fires nearby."
+      );
+    } else if (count === 0) {
+      setStatus(fireStatus, "empty", "No fires nearby.");
     } else {
-      fireStatus.textContent = count
-        ? count + " recent fire detection" + (count === 1 ? "" : "s") +
-          " within about 275 km of " + placeName + ". FIRMS satellite detections are hotspots, not confirmed fire perimeters."
-        : "No recent NASA FIRMS detections found near " + placeName + ".";
+      setStatus(
+        fireStatus,
+        "ok",
+        count + " recent fire detection" + (count === 1 ? "" : "s") +
+          " within about 275 km of " + placeName +
+          ". FIRMS dots are hotspots, not confirmed fire perimeters."
+      );
     }
     notifyStory();
   } catch (error) {
     if (thisRequest !== fireRequestCount) return;
-    fireStatus.textContent = "Could not load fire detections for " + placeName + " (" + error.message + ").";
+    setStatus(fireStatus, "error", "Could not load fire data. Try Refresh.");
     latestFireInfo = { placeName: placeName, count: null, demo: false, error: error.message };
     notifyStory();
   }

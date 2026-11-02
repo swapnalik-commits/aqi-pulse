@@ -42,7 +42,7 @@
     <div class="panels">
       <section id="map" class="panel">
         <h2>Fires and wind</h2>
-        <p id="fire-status" role="status" aria-live="polite">Loading fire detections…</p>
+        <p id="fire-status" class="status-msg is-loading" role="status" aria-live="polite">Loading fires…</p>
         <div id="fire-map" role="application" aria-label="Map of recent NASA FIRMS fire detections"></div>
         <ul class="legend" aria-label="Map legend">
           <li><span class="legend-fire" aria-hidden="true"></span>Fire spotted by NASA satellites</li>
@@ -53,8 +53,8 @@
 
       <section id="chart" class="panel">
         <h2>Air quality, last 24 hours</h2>
-        <p>The AQI chart will appear here.</p>
-        <div id="aqi-chart"></div>
+        <p id="chart-status" class="status-msg is-loading" role="status" aria-live="polite">Loading air quality…</p>
+        <div id="aqi-chart" aria-live="polite"></div>
         <ul class="legend" id="aqi-legend" aria-label="US AQI levels"></ul>
         <p class="note">Hourly US AQI, shown in the place's local time.</p>
       </section>
@@ -62,7 +62,7 @@
 
     <section id="summary" class="panel panel-wide">
       <h2>What changed</h2>
-      <p id="story">The trend explanation will appear here.</p>
+      <p id="story" class="status-msg is-loading" role="status" aria-live="polite">Loading the picture…</p>
     </section>
   </main>
 

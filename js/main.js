@@ -1,6 +1,6 @@
 const placeSelect = document.querySelector("#place");
 const refreshBtn = document.querySelector("#refresh");
-const chartStatus = document.querySelector("#chart p");
+const chartStatus = document.querySelector("#chart-status");
 const storyBox = document.querySelector("#story");
 
 const chartBox = document.querySelector("#aqi-chart");
@@ -52,20 +52,23 @@ function updateStory() {
   const placeName = lastPlaceName || placeSelect.selectedOptions[0].textContent;
   const parts = [];
 
+  let storyKind = "ok";
+
   if (latestFireInfo.error) {
-    parts.push("Fire detections could not be loaded for " + placeName + ".");
+    parts.push("Fire data could not be loaded.");
+    storyKind = "error";
   } else if (latestFireInfo.count === null) {
-    parts.push("Loading nearby fire detections for " + placeName + "…");
+    parts.push("Loading nearby fires…");
+    storyKind = "loading";
   } else if (latestFireInfo.demo) {
     parts.push(
       latestFireInfo.count
         ? "DEMO SAMPLE: " + latestFireInfo.count + " example fire location" +
-          (latestFireInfo.count === 1 ? "" : "s") + " near " + placeName +
-          " (not live satellite detections)."
-        : "DEMO SAMPLE: no example fires near " + placeName + "."
+          (latestFireInfo.count === 1 ? "" : "s") + " near " + placeName + "."
+        : "DEMO SAMPLE: no example fires nearby."
     );
   } else if (latestFireInfo.count === 0) {
-    parts.push("No recent NASA FIRMS fire detections were found near " + placeName + ".");
+    parts.push("No fires nearby.");
   } else {
     parts.push(
       latestFireInfo.count + " recent fire detection" +
@@ -75,7 +78,10 @@ function updateStory() {
   }
 
   if (windReading.speed === null) {
-    parts.push(windReading.message || "Wind is still loading.");
+    const windMsg = windReading.message || "Loading wind…";
+    parts.push(windMsg);
+    if (windMsg.indexOf("Could not") === 0) storyKind = "error";
+    else if (storyKind !== "error") storyKind = "loading";
   } else {
     let windLine = "The wind is blowing toward " + windReading.compass +
       " at " + windReading.speed + " km/h.";
@@ -91,7 +97,8 @@ function updateStory() {
   }
 
   if (!airReady) {
-    parts.push("Air quality is still loading.");
+    parts.push("Loading air quality…");
+    if (storyKind !== "error") storyKind = "loading";
   } else if (currentTrend) {
     const sign = currentTrend.change > 0 ? "+" : "";
     parts.push(
@@ -105,10 +112,25 @@ function updateStory() {
       ", but there is not enough hourly data to label a short-term trend."
     );
   } else {
-    parts.push("Air quality data is unavailable right now.");
+    parts.push("Could not load air quality.");
+    storyKind = "error";
   }
 
-  storyBox.textContent = parts.join(" ");
+  setStatus(storyBox, storyKind, parts.join(" "));
+}
+
+function showChartPlaceholder(kind, text) {
+  chartBox.replaceChildren();
+  const placeholder = document.createElement("p");
+  placeholder.className = "chart-placeholder status-msg is-" + kind;
+  placeholder.textContent = text;
+  chartBox.appendChild(placeholder);
+}
+
+function setSkyState(kind, title) {
+  skyBand.classList.remove("is-loading", "is-empty", "is-error");
+  if (kind) skyBand.classList.add("is-" + kind);
+  nowTitle.textContent = title;
 }
 
 function showPlace() {
@@ -134,14 +156,13 @@ async function loadAirQuality(coords, placeName) {
   const [lat, lon] = coords.split(",");
   const thisRequest = ++requestCount;
 
-  chartStatus.textContent = "Loading air quality for " + placeName + "…";
-  nowTitle.textContent = "Checking the air in " + placeName + "…";
+  setStatus(chartStatus, "loading", "Loading air quality…");
+  setSkyState("loading", "Checking the air in " + placeName + "…");
   nowAqi.hidden = true;
   skyBand.style.removeProperty("--level");
-  chartStatus.hidden = false;
   trendBox.hidden = true;
   adviceBox.hidden = true;
-  chartBox.replaceChildren();
+  showChartPlaceholder("loading", "Loading…");
   currentTrend = null;
   lastPoints = null;
   airReady = false;
@@ -170,14 +191,17 @@ async function loadAirQuality(coords, placeName) {
       .map(p => ({ time: new Date((p.t + offset) * 1000), aqi: p.aqi }));
 
     if (points.length < 2) {
-      chartStatus.textContent = "No recent air-quality data for " + placeName + ".";
-      nowTitle.textContent = "No recent air-quality data for " + placeName + ".";
+      setStatus(chartStatus, "empty", "No air-quality data right now.");
+      setSkyState("empty", "No air-quality data for " + placeName + " right now.");
+      showChartPlaceholder("empty", "No air-quality data to chart.");
       airReady = true;
       updateStory();
       return;
     }
 
     chartStatus.hidden = true;
+    chartStatus.classList.remove("is-loading", "is-empty", "is-error", "is-ok");
+    skyBand.classList.remove("is-loading", "is-empty", "is-error");
     currentTrend = trendFor(points);
     lastPoints = points;
     airReady = true;
@@ -187,10 +211,10 @@ async function loadAirQuality(coords, placeName) {
     updateStory();
   } catch (error) {
     if (thisRequest !== requestCount) return;
-    const reason = error.name === "TimeoutError" ? "the request timed out" : error.message;
-    chartStatus.textContent = "Could not load air quality for " + placeName +
-      " (" + reason + "). Try again in a minute.";
-    nowTitle.textContent = "Couldn't load air quality for " + placeName + ". Try again in a minute.";
+    setStatus(chartStatus, "error", "Could not load air quality. Try Refresh.");
+    setSkyState("error", "Could not load air quality for " + placeName + ".");
+    showChartPlaceholder("error", "Could not load data.");
+    adviceBox.hidden = true;
     airReady = true;
     updateStory();
   }
