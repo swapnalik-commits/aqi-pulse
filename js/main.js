@@ -100,11 +100,9 @@ function updateStory() {
     parts.push("Loading air quality…");
     if (storyKind !== "error") storyKind = "loading";
   } else if (currentTrend) {
-    const sign = currentTrend.change > 0 ? "+" : "";
     parts.push(
       "Air quality is " + currentTrend.label.toLowerCase() +
-      " (" + sign + currentTrend.change + " AQI in the last " +
-      hoursText(TREND_RULE.hours) + ")."
+      " (" + changeText(currentTrend.change) + ")."
     );
   } else if (lastPoints && lastPoints.length) {
     parts.push(
@@ -362,9 +360,8 @@ function drawChart(points, trend) {
 function showTrend() {
   if (!currentTrend) return;
 
-  const sign = currentTrend.change > 0 ? "+" : "";
   const detail = document.createElement("small");
-  detail.textContent = "(" + sign + currentTrend.change + " AQI in the last " + hoursText(TREND_RULE.hours) + ")";
+  detail.textContent = "(" + changeText(currentTrend.change) + ")";
 
   trendBox.style.background = TREND_COLORS[currentTrend.label];
   trendBox.replaceChildren(TREND_ARROWS[currentTrend.label] + " " + currentTrend.label, detail);
