@@ -392,6 +392,11 @@ main {
   margin-top: 20px;
 }
 
+/* "What changed" is the plain-language summary, so give it a small accent */
+#summary {
+  border-left: 4px solid var(--sky);
+}
+
 .note {
   margin: 8px 0 0;
   font-size: 0.85rem;
@@ -489,6 +494,9 @@ main {
   }
   .trend {
     border-radius: var(--radius-small);
+  }
+  #fire-map {
+    height: 260px;
   }
 }
 

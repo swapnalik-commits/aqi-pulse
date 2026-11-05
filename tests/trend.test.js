@@ -1,7 +1,7 @@
 ﻿// Tests for the trend rule. Run from the project folder:  node --test
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { TREND_RULE, labelForChange, getTrend, hoursText } = require("../js/trend.js");
+const { TREND_RULE, labelForChange, getTrend, hoursText, changeText } = require("../js/trend.js");
 
 const T = TREND_RULE.threshold;
 
@@ -48,4 +48,10 @@ test("the page uses the 1-hour, 5-point rule from the findings", () => {
 test("hoursText says 1 hour, not 1 hours", () => {
   assert.equal(hoursText(1), "1 hour");
   assert.equal(hoursText(3), "3 hours");
+});
+
+test("changeText says 'no change' instead of '0 AQI'", () => {
+  assert.equal(changeText(0), "no change in the last 1 hour");
+  assert.equal(changeText(8), "+8 AQI in the last 1 hour");
+  assert.equal(changeText(-6), "-6 AQI in the last 1 hour");
 });

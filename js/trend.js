@@ -33,6 +33,12 @@ function hoursText(n) {
   return n === 1 ? "1 hour" : n + " hours";
 }
 
+// "+8 AQI in the last 1 hour", or "no change in the last 1 hour" when it didn't move
+function changeText(change) {
+  const amount = change === 0 ? "no change" : (change > 0 ? "+" : "") + change + " AQI";
+  return amount + " in the last " + hoursText(TREND_RULE.hours);
+}
+
 // values = hourly AQI, oldest first. Returns null if there isn't enough data.
 function getTrend(values) {
   const clean = values.filter(v => v !== null && v !== undefined);
@@ -44,5 +50,5 @@ function getTrend(values) {
 }
 
 if (typeof module !== "undefined") {
-  module.exports = { TREND_RULE, TREND_COLORS, TREND_ARROWS, labelForChange, getTrend, hoursText };
+  module.exports = { TREND_RULE, TREND_COLORS, TREND_ARROWS, labelForChange, getTrend, hoursText, changeText };
 }
