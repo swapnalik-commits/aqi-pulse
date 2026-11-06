@@ -21,12 +21,14 @@ We also refreshed the page after changing place, to confirm the three feeds redr
 
 ### What we saw
 
-| Picture on the page | What it suggests | How often it lined up |
+| Picture on the page | What it suggests | What these checks support |
 |---|---|---|
-| Fires upwind + AQI Worsening | Smoke may be arriving | Sometimes — the clearest “yes” cases |
-| Fires nearby but not upwind + Stable/Improving | Hotspots exist, but wind is not aiming them at the city | Common |
-| No nearby fires + AQI Worsening | Something else is driving the air (urban pollution, distant smoke, model noise) | Happens |
+| Fires upwind + AQI Worsening | Smoke may be arriving | The clearest “yes” picture. It was not in the two saved screenshots. |
+| Fires nearby but not upwind + Stable or Improving | Hotspots exist, but the wind is not aiming them at the city | Both saved screenshots look like this. |
+| No nearby fires + AQI Worsening | Something else is driving the air (urban pollution, distant smoke, model noise) | Not in the two saved screenshots. |
 | DEMO SAMPLE fires | Layout test only | Not used as evidence for the science claim |
+
+These rows are patterns, not a rate. We did not log enough days to say how often each one happens.
 
 ### Examples with screenshots (captured from the live page)
 
@@ -164,4 +166,37 @@ What the table shows:
 
 ## Q3. How does satellite delay affect the trend? (issue #11)
 
-_To be added._
+### Short answer
+
+**The trend and the fire map are not on the same clock.** The trend compares US AQI with **1 hour** earlier. The map asks NASA FIRMS for up to **5 days** of VIIRS near-real-time detections, and a dot can already be many hours old when it appears. A Worsening label can show up before a new dot does. A dot can still be on the map after the 1-hour trend has gone back to Stable.
+
+NASA’s target for near-real-time fire data is within about **3 hours** of the satellite observation, on a best-effort basis. The satellites are polar orbiters, so a place is usually seen only about twice a day. The feed can also run later than the 3-hour target. This page uses the NRT area API (`VIIRS_SNPP_NRT`, `VIIRS_NOAA20_NRT`, `VIIRS_NOAA21_NRT`), not the ultra-real-time layer FIRMS shows for parts of the US and Canada.
+
+### How we checked it
+
+On the evening of **5 Nov 2026** (about 11 p.m. Newfoundland time) we read FIRMS data availability and the hourly US AQI for Los Angeles, Denver, and Seattle.
+
+FIRMS day range `1` means the current UTC day only, not “the last 24 hours.” Just after midnight UTC that request drops the previous day. At the time we checked, a 1-day request around each of the three cities came back empty.
+
+### What we saw
+
+| Feed | Newest date FIRMS had posted |
+|---|---|
+| VIIRS SNPP NRT | 2 Nov 2026, about 3 days behind |
+| VIIRS NOAA-21 NRT | 5 Nov 2026 |
+| VIIRS NOAA-20 NRT | 6 Nov 2026 |
+
+A 5-day box around each city still had detections. The newest NOAA-20 hotspot was about **17 hours** old near Los Angeles, **7 hours** old near Denver, and **5 hours** old near Seattle. SNPP’s newest rows in those boxes were about **88 hours** old. At the same moment the 1-hour AQI change was **0** in Los Angeles (AQI 59), **0** in Denver (AQI 60), and **+1** in Seattle (AQI 37). Every city was **Stable** while the fire record was hours to days old.
+
+So a Stable trend does not mean the map is empty, and a dot on the map does not mean the air changed in the last hour. One satellite can also be days behind the other two. The page used to ask for only the current UTC day, which hid those older dots and made the map look like there were no fires.
+
+### What this means for the page
+
+`server.py` now requests **5 days**, the longest FIRMS allows in one call. Dots from the same hotspot within 1.5 km count once, keeping the newest time. On the map, upwind dots are darker, older dots are fainter, and a click says how many hours ago the satellite saw it. The note above the map says the dots cover about 5 days and the arrow is this hour.
+
+### Limits
+
+- This is one evening, not a season of delay times.
+- “Hours ago” is the age of the satellite timestamp, so it includes waiting for the next overpass and waiting for FIRMS to post the file.
+- NRT positions use a predicted orbit, so a dot is a hotspot, not a surveyed fire perimeter.
+- Open-Meteo’s US AQI is still a model, not a ground monitor.

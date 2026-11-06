@@ -42,27 +42,38 @@
     <div class="panels">
       <section id="map" class="panel">
         <h2>Fires and wind</h2>
+        <p class="note">Fire dots cover about the last 5 days. The arrow is the wind this hour. The pale wedge is upwind.</p>
         <p id="fire-status" class="status-msg is-loading" role="status" aria-live="polite">Loading fires…</p>
-        <div id="fire-map" role="application" aria-label="Map of recent NASA FIRMS fire detections"></div>
+        <div id="fire-map" role="application" aria-label="Map of recent NASA FIRMS fire detections, the 275 kilometre search area, and the upwind wedge"></div>
         <ul class="legend" aria-label="Map legend">
-          <li><span class="legend-fire" aria-hidden="true"></span>Fire spotted by NASA satellites</li>
+          <li><span class="legend-upwind" aria-hidden="true"></span>Upwind fire (smoke could blow toward the place)</li>
+          <li><span class="legend-fire" aria-hidden="true"></span><span id="legend-fire-label">Other fire in the last 5 days</span></li>
+          <li id="legend-age"><span id="legend-age-label">Fainter dots are older</span></li>
           <li><span class="legend-place" aria-hidden="true"></span>Selected place</li>
           <li><svg class="legend-wind" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 22 22 12 17 2 22Z"/></svg>Wind arrow points where the wind is blowing</li>
+          <li><span class="legend-radius" aria-hidden="true"></span>About 275 km search area</li>
         </ul>
       </section>
 
       <section id="chart" class="panel">
         <h2>Air quality, last 24 hours</h2>
+        <p class="note">Times are the place's local time. The trend label uses only the last 1 hour.</p>
         <p id="chart-status" class="status-msg is-loading" role="status" aria-live="polite">Loading air quality…</p>
         <div id="aqi-chart" aria-live="polite"></div>
         <ul class="legend" id="aqi-legend" aria-label="US AQI levels"></ul>
-        <p class="note">Hourly US AQI, shown in the place's local time.</p>
+        <div class="aqi-table-wrap">
+          <table id="aqi-table"></table>
+        </div>
       </section>
     </div>
 
     <section id="summary" class="panel panel-wide">
       <h2>What changed</h2>
-      <p id="story" class="status-msg is-loading" role="status" aria-live="polite">Loading the picture…</p>
+      <div id="story">
+        <p id="story-fires" class="status-msg is-loading" role="status" aria-live="polite">Loading nearby fires…</p>
+        <p id="story-wind" class="status-msg is-loading" role="status" aria-live="polite">Loading wind…</p>
+        <p id="story-air" class="status-msg is-loading" role="status" aria-live="polite">Loading air quality…</p>
+      </div>
     </section>
   </main>
 
@@ -73,8 +84,10 @@
 
   <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
   <script src="https://unpkg.com/maplibre-gl@5.6.2/dist/maplibre-gl.js"></script>
-  <script src="js/fires.js"></script>
+  <script src="js/geo.js"></script>
   <script src="js/trend.js"></script>
+  <script src="js/story.js"></script>
+  <script src="js/fires.js"></script>
   <script src="js/main.js"></script>
   <script src="js/legend.js"></script>
 </body>

@@ -1,6 +1,15 @@
 # aqi-pulse
 Live air-quality and wildfire visualization: fires, wind, and how the air is changing
 
+The page shows fire detections from about the last 5 days, the wind for the current hour, and US AQI for the last 24 hours with a 1-hour trend.
+
+## Write-up
+
+- [Findings](docs/findings.md) answer the three research questions.
+- [Design notes](docs/design-notes.md) explain the chart, the trend rule, and the map.
+
+![Los Angeles on 29 Oct 2026: fires, wind toward the southwest, and a Stable AQI](docs/images/q1-los-angeles.png)
+
 ## Run the page
 
 Run the local server from PowerShell:
@@ -25,4 +34,6 @@ MAP_KEY=your_key_here
 
 Restart `python server.py`. The server reads the key from `.env` and proxies FIRMS requests, keeping the key out of browser code. `.env` is Git-ignored.
 
-The map shows the selected place, current wind, and recent detections from the three VIIRS near-real-time satellite feeds within roughly 275 km. The wind arrow points downwind and is labeled with speed in km/h; fire markers show acquisition time when selected. The basemap uses OpenFreeMap, which requires no API key and provides OpenStreetMap attribution.
+The map shows the selected place, current wind, and detections from the three VIIRS near-real-time satellite feeds within roughly 275 km over about the last 5 days. The same hotspot seen by more than one satellite is drawn once. Darker dots are upwind, fainter dots are older, and the pale wedge is the upwind direction. The wind arrow points downwind and is labeled with speed in km/h. The basemap uses OpenFreeMap, which requires no API key and provides OpenStreetMap attribution.
+
+Check the trend rule with `node --test`.

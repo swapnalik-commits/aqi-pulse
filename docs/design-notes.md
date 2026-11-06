@@ -27,7 +27,7 @@ The proposal points out that most tools show "a single AQI number with no real c
 | **Trend label: word + arrow + color** | The word carries the meaning. The arrow (↑ → ↓) means color-blind viewers don't have to rely on red vs green. The color is only a quick extra cue. |
 | **Shaded "last 1 h" window and hollow dot** | Shows exactly which two readings the trend label compares, so the label and the chart tell one story and the label can be checked by eye. |
 | **The number next to the label** ("+8 AQI in the last 1 hour") | Shows the evidence, and says plainly that the label describes the past, not a forecast (see `findings.md`, Q2). |
-| **Hover a dot for the exact value** | Exact numbers are there when you want them without crowding the chart. |
+| **Hover a dot for the exact value** | Exact numbers are there when you want them without crowding the chart. The same hours are also listed in a table under the chart, so a phone does not have to rely on hover. |
 | **Loading and error messages** | Live data can fail. The page says so instead of showing an empty box. |
 | **Fits the screen width** | The chart is drawn at its real width (and redrawn when the window is resized), so the text stays readable on a phone and there's no sideways scroll. |
 
@@ -37,8 +37,17 @@ The proposal points out that most tools show "a single AQI number with no real c
 
 We started with 3 hours / 10 points. `findings.md` (Q2) tested that rule and 11 other versions, and 1 hour / 5 points worked best, so we switched (issue #17).
 
+## Map
+
+The fire layer is a different clock from the 1-hour trend (see `findings.md`, Q3).
+
+- **5 days, not “today” only.** FIRMS day range 1 is the current UTC day. The page requests 5 days so a detection from yesterday, or from a satellite that posted late, still appears.
+- **One dot per hotspot.** Detections within 1.5 km are treated as the same fire. The newest time is kept. The rule is `FIRE_DEDUPE_KM` in `js/geo.js` and `DEDUPE_KM` in `server.py`.
+- **Age and upwind are drawn, not only described.** Upwind dots are darker. Older dots are fainter. A dashed circle is the 275 km search, and a pale wedge is the 45° upwind sector.
+- **Three sentences.** “What changed” is one line for fires, one for this hour’s wind, and one for the air-quality trend.
+
 ## Testing
 
-- `node --test` runs the unit tests for the trend rule (`tests/trend.test.js`).
+- `node --test` runs the trend rule, the fire dedupe and upwind math, and the story lines (`tests/`).
 - `node docs/backtest.js` re-runs the reliability check on live data.
 - Checked in a browser: all three places, a failed request, a request that never answers (gives up after 10 seconds), switching places quickly, and a phone-sized screen.
