@@ -98,10 +98,14 @@ a {
 }
 
 #story {
-  margin: 0;
+  display: grid;
+  gap: 8px;
   max-width: 70ch;
+}
+
+#story p {
+  margin: 0;
   font-size: 1.05rem;
-  color: var(--ink);
   line-height: 1.55;
 }
 
@@ -284,6 +288,14 @@ main {
   padding: 10px 12px;
 }
 
+.status-msg.is-warn {
+  color: #7a4b00;
+  background: #fff6e5;
+  border: 1px solid #f0d7a4;
+  border-radius: var(--radius-small);
+  padding: 10px 12px;
+}
+
 .status-msg.is-ok {
   color: var(--ink-soft);
 }
@@ -314,22 +326,13 @@ main {
   --level: #f3c1c1;
 }
 
-#story.status-msg {
-  margin: 0;
-  max-width: 70ch;
-  font-size: 1.05rem;
+#story .status-msg.is-ok,
+#story .status-msg.is-loading,
+#story .status-msg.is-empty {
   color: var(--ink);
   background: transparent;
   border: none;
   padding: 0;
-}
-
-#story.status-msg.is-error {
-  color: #9b1c1c;
-  background: #fdecec;
-  border: 1px solid #f3c1c1;
-  border-radius: var(--radius-small);
-  padding: 12px 14px;
 }
 
 /* Legends under the map and the chart */
@@ -376,10 +379,63 @@ main {
   fill: currentColor;
 }
 
-.legend-fire {
-  background: #f07824;
+.legend-upwind {
+  display: inline-block;
+  flex: 0 0 auto;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #c2410c;
   border: 2px solid #ffffff;
-  box-shadow: 0 0 0 1px #b94d0a;
+  box-shadow: 0 0 0 1px #9a3412;
+}
+
+.legend-radius {
+  display: inline-block;
+  flex: 0 0 auto;
+  width: 14px;
+  height: 14px;
+  border: 2px dashed #2f5f9e;
+  border-radius: 50%;
+}
+
+.legend-fire {
+  background: #fdba74;
+  border: 2px solid #ffffff;
+  box-shadow: 0 0 0 1px #c2410c;
+}
+
+.aqi-table-wrap {
+  max-height: 220px;
+  margin-top: 12px;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-small);
+}
+
+#aqi-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+#aqi-table caption {
+  padding: 8px 10px;
+  font-weight: 700;
+  text-align: left;
+  color: var(--ink);
+}
+
+#aqi-table th,
+#aqi-table td {
+  padding: 4px 10px;
+  text-align: left;
+  border-top: 1px solid var(--line);
+}
+
+#aqi-table td:last-child,
+#aqi-table th:last-child {
+  text-align: right;
 }
 
 .legend-place {

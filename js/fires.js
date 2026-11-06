@@ -5,7 +5,7 @@ function setStatus(el, kind, text) {
   if (!el) return;
   el.hidden = false;
   el.textContent = text;
-  el.classList.remove("is-loading", "is-empty", "is-error", "is-ok");
+  el.classList.remove("is-loading", "is-empty", "is-error", "is-ok", "is-warn");
   if (kind) el.classList.add("is-" + kind);
 }
 
@@ -14,48 +14,32 @@ let windRequestCount = 0;
 let mapLoaded = false;
 let selectedPlace = { name: "Los Angeles", latitude: 34.05, longitude: -118.24 };
 let fireFeatureCollection = { type: "FeatureCollection", features: [] };
+let rawFires = [];
+let firesAreDemo = false;
 let selectedPlaceMarker = null;
 let windMarker = null;
 let windReading = { message: "Loading wind…", speed: null, direction: null };
 // Shared with the "What changed" story in main.js.
-let latestFireInfo = { placeName: "", count: null, demo: false, error: null };
+let latestFireInfo = { placeName: "", count: null, demo: false, error: null, sourcesFailed: 0, sources: 3 };
 
 function notifyStory() {
   if (typeof updateStory === "function") updateStory();
 }
 
-function bearingDegrees(fromLat, fromLon, toLat, toLon) {
-  const φ1 = fromLat * Math.PI / 180;
-  const φ2 = toLat * Math.PI / 180;
-  const Δλ = (toLon - fromLon) * Math.PI / 180;
-  const y = Math.sin(Δλ) * Math.cos(φ2);
-  const x = Math.cos(φ1) * Math.sin(φ2) - Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ);
-  return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+function reportFeed(name, state) {
+  if (typeof noteFeed === "function") noteFeed(name, state);
 }
 
-function angleDiff(a, b) {
-  return Math.abs(((a - b + 540) % 360) - 180);
-}
-
-// Count fires that sit roughly upwind of the place (smoke can blow toward it).
 function countUpwindFires() {
   if (windReading.speed === null || windReading.direction === null) return null;
-  const toward = windReading.direction;
-  let upwind = 0;
-  fireFeatureCollection.features.forEach(function (fire) {
-    const lon = fire.geometry.coordinates[0];
-    const lat = fire.geometry.coordinates[1];
-    const bear = bearingDegrees(lat, lon, selectedPlace.latitude, selectedPlace.longitude);
-    if (angleDiff(bear, toward) <= 45) upwind += 1;
-  });
-  return upwind;
+  return countUpwind(rawFires, selectedPlace, windReading.direction);
 }
 
 const fireMap = new maplibregl.Map({
   container: "fire-map",
   style: "https://tiles.openfreemap.org/styles/positron",
   center: [selectedPlace.longitude, selectedPlace.latitude],
-  zoom: 7,
+  zoom: 6,
   attributionControl: true
 });
 
@@ -76,16 +60,128 @@ function setFireFeatures(features) {
   if (source) source.setData(fireFeatureCollection);
 }
 
+function emptyCollection() {
+  return { type: "FeatureCollection", features: [] };
+}
+
+function paintSearchArea() {
+  if (!mapLoaded) return;
+  const radius = fireMap.getSource("search-area");
+  if (radius) {
+    radius.setData({
+      type: "FeatureCollection",
+      features: [{
+        type: "Feature",
+        properties: {},
+        geometry: {
+          type: "Polygon",
+          coordinates: [circlePolygon(selectedPlace.latitude, selectedPlace.longitude, 275)]
+        }
+      }]
+    });
+  }
+
+  const wedge = fireMap.getSource("upwind-wedge");
+  if (!wedge) return;
+  if (!Number.isFinite(windReading.direction)) {
+    wedge.setData(emptyCollection());
+    return;
+  }
+  wedge.setData({
+    type: "FeatureCollection",
+    features: [{
+      type: "Feature",
+      properties: {},
+      geometry: {
+        type: "Polygon",
+        coordinates: [wedgePolygon(
+          selectedPlace.latitude,
+          selectedPlace.longitude,
+          275,
+          windReading.direction,
+          45
+        )]
+      }
+    }]
+  });
+}
+
+function paintFires() {
+  const now = Date.now();
+  setFireFeatures(rawFires.map(fire => {
+    const upwind = Number.isFinite(windReading.direction) && isUpwind(
+      fire.latitude, fire.longitude, selectedPlace.latitude, selectedPlace.longitude, windReading.direction
+    );
+    const age = firesAreDemo ? 0 : ageHours(fire.detectedAt, now);
+    return {
+      type: "Feature",
+      geometry: { type: "Point", coordinates: [fire.longitude, fire.latitude] },
+      properties: {
+        detectedAt: fire.detectedAt,
+        demo: firesAreDemo ? 1 : 0,
+        ageHours: age === null ? 0 : age,
+        upwind: upwind ? 1 : 0
+      }
+    };
+  }));
+  paintSearchArea();
+}
+
+function updateFireLegend(demo) {
+  const fireLabel = document.querySelector("#legend-fire-label");
+  const ageLabel = document.querySelector("#legend-age-label");
+  if (fireLabel) {
+    fireLabel.textContent = demo
+      ? "Example fire (not a live satellite detection)"
+      : "Other fire in the last 5 days";
+  }
+  if (ageLabel) {
+    ageLabel.textContent = demo
+      ? "Example dots are not timed to today"
+      : "Fainter dots are older";
+  }
+}
+
 fireMap.on("load", () => {
   mapLoaded = true;
+  fireMap.addSource("search-area", { type: "geojson", data: emptyCollection() });
+  fireMap.addLayer({
+    id: "search-radius",
+    type: "line",
+    source: "search-area",
+    paint: {
+      "line-color": "#2f5f9e",
+      "line-width": 1.5,
+      "line-dasharray": [2, 2],
+      "line-opacity": 0.8
+    }
+  });
+
+  fireMap.addSource("upwind-wedge", { type: "geojson", data: emptyCollection() });
+  fireMap.addLayer({
+    id: "upwind-fill",
+    type: "fill",
+    source: "upwind-wedge",
+    paint: {
+      "fill-color": "#c2410c",
+      "fill-opacity": 0.14
+    }
+  });
+
   fireMap.addSource("fire-detections", { type: "geojson", data: fireFeatureCollection });
   fireMap.addLayer({
     id: "fire-dots",
     type: "circle",
     source: "fire-detections",
     paint: {
-      "circle-radius": 6,
-      "circle-color": "#f07824",
+      "circle-radius": ["case", ["==", ["get", "upwind"], 1], 8, 5],
+      "circle-color": ["case", ["==", ["get", "upwind"], 1], "#c2410c", "#fdba74"],
+      "circle-opacity": [
+        "case",
+        ["==", ["get", "demo"], 1],
+        0.95,
+        ["interpolate", ["linear"], ["coalesce", ["get", "ageHours"], 0], 0, 1, 120, 0.35]
+      ],
       "circle-stroke-color": "#ffffff",
       "circle-stroke-width": 1.5
     }
@@ -94,29 +190,35 @@ fireMap.on("load", () => {
   fireMap.on("click", "fire-dots", event => {
     const fire = event.features[0];
     const content = document.createElement("div");
-    content.textContent = (fire.properties.demo ? "Sample time (not live): " : "Detected ") +
-      new Date(fire.properties.detectedAt).toLocaleString([], {
+    const when = new Date(fire.properties.detectedAt).toLocaleString([], {
       year: "numeric", month: "short", day: "numeric",
       hour: "numeric", minute: "2-digit", timeZoneName: "short"
     });
+    const isDemo = Number(fire.properties.demo) === 1;
+    let text = isDemo ? "Sample time (not live): " + when : "Detected " + when;
+    if (!isDemo) {
+      const age = Number(fire.properties.ageHours);
+      text += age < 1 ? " (under 1 hour ago)" : " (" + Math.round(age) + " hours ago)";
+    }
+    if (Number(fire.properties.upwind) === 1) text += ". Roughly upwind.";
+    content.textContent = text;
     new maplibregl.Popup()
       .setLngLat(event.lngLat)
       .setDOMContent(content)
       .addTo(fireMap);
   });
-  
+
   fireMap.on("mouseenter", "fire-dots", () => { fireMap.getCanvas().style.cursor = "pointer"; });
   fireMap.on("mouseleave", "fire-dots", () => { fireMap.getCanvas().style.cursor = ""; });
   setPlaceMarker();
   renderWindMarker();
+  paintFires();
   fireMap.resize();
 });
 
 function renderWindMarker() {
-  if (!mapLoaded)
-    return;
-  if (windMarker)
-    windMarker.remove();
+  if (!mapLoaded) return;
+  if (windMarker) windMarker.remove();
 
   const element = document.createElement("div");
   element.className = "wind-marker";
@@ -162,6 +264,7 @@ async function loadWind(coords, placeName) {
   const thisRequest = ++windRequestCount;
   windReading = { message: "Loading wind…", speed: null, direction: null };
   renderWindMarker();
+  paintSearchArea();
 
   const query = new URLSearchParams({
     latitude,
@@ -173,14 +276,10 @@ async function loadWind(coords, placeName) {
   try {
     const response = await fetch("https://api.open-meteo.com/v1/forecast?" + query,
       { signal: AbortSignal.timeout(15000) });
-    if (!response.ok) {
-      throw new Error("HTTP " + response.status);
-    }
+    if (!response.ok) throw new Error("HTTP " + response.status);
 
     const data = await response.json();
-    if (thisRequest !== windRequestCount) {
-      return;
-    }
+    if (thisRequest !== windRequestCount) return;
 
     const rawSpeed = data.current?.wind_speed_10m;
     const rawDirection = data.current?.wind_direction_10m;
@@ -202,12 +301,16 @@ async function loadWind(coords, placeName) {
     };
 
     renderWindMarker();
+    paintFires();
     notifyStory();
+    reportFeed("wind", "ok");
   } catch (error) {
     if (thisRequest !== windRequestCount) return;
     windReading = { message: "Could not load wind. Try Refresh.", speed: null, direction: null };
     renderWindMarker();
+    paintSearchArea();
     notifyStory();
+    reportFeed("wind", "error");
   }
 }
 
@@ -215,11 +318,13 @@ async function showFires(coords, placeName) {
   const [latitude, longitude] = coords.split(",").map(Number);
   const thisRequest = ++fireRequestCount;
   selectedPlace = { name: placeName, latitude, longitude };
-  latestFireInfo = { placeName: placeName, count: null, demo: false, error: null };
+  rawFires = [];
+  firesAreDemo = false;
+  latestFireInfo = { placeName: placeName, count: null, demo: false, error: null, sourcesFailed: 0, sources: 3 };
   renderWindMarker();
-  fireMap.easeTo({ center: [longitude, latitude], zoom: 7 });
+  fireMap.easeTo({ center: [longitude, latitude], zoom: 6 });
   setPlaceMarker();
-  setFireFeatures([]);
+  paintFires();
   setStatus(fireStatus, "loading", "Loading fires near " + placeName + "…");
   notifyStory();
 
@@ -227,6 +332,7 @@ async function showFires(coords, placeName) {
     setStatus(fireStatus, "error", "Could not load fires. Open http://127.0.0.1:8000/ with py server.py running.");
     latestFireInfo.error = "Open the page through the local server to load fires.";
     notifyStory();
+    reportFeed("fires", "error");
     return;
   }
 
@@ -240,41 +346,61 @@ async function showFires(coords, placeName) {
     const result = await response.json();
     if (thisRequest !== fireRequestCount) return;
     if (!Array.isArray(result.fires)) throw new Error("Fire data had an unexpected format.");
-    const detections = result.fires;
 
-    setFireFeatures(detections.map(fire => ({
-      type: "Feature",
-      geometry: { type: "Point", coordinates: [fire.longitude, fire.latitude] },
-      properties: { detectedAt: fire.detectedAt, demo: Boolean(result.demo) }
-    })));
+    firesAreDemo = Boolean(result.demo);
+    rawFires = dedupeFires(result.fires);
+    paintFires();
+    updateFireLegend(firesAreDemo);
 
-    const count = detections.length;
-    latestFireInfo = { placeName: placeName, count: count, demo: Boolean(result.demo), error: null };
-    if (result.demo) {
-      setStatus(
-        fireStatus,
-        count ? "ok" : "empty",
-        count
-          ? "DEMO SAMPLE: " + count + " example fire location" + (count === 1 ? "" : "s") +
-            " near " + placeName + " (not live)."
-          : "DEMO SAMPLE: no example fires nearby."
-      );
+    const count = rawFires.length;
+    const sourcesFailed = Number(result.sourcesFailed) || 0;
+    const sources = Number(result.sources) || 3;
+    latestFireInfo = {
+      placeName: placeName,
+      count: count,
+      demo: firesAreDemo,
+      error: null,
+      sourcesFailed: sourcesFailed,
+      sources: sources
+    };
+
+    let text;
+    let kind;
+    if (firesAreDemo) {
+      kind = count ? "ok" : "empty";
+      text = count
+        ? "DEMO SAMPLE: " + count + " example fire location" + (count === 1 ? "" : "s") +
+          " near " + placeName + " (not live)."
+        : "DEMO SAMPLE: no example fires nearby.";
     } else if (count === 0) {
-      setStatus(fireStatus, "empty", "No fires nearby.");
+      kind = "empty";
+      text = "No fires nearby in the last 5 days.";
     } else {
-      setStatus(
-        fireStatus,
-        "ok",
-        count + " recent fire detection" + (count === 1 ? "" : "s") +
-          " within about 275 km of " + placeName +
-          ". FIRMS dots are hotspots, not confirmed fire perimeters."
-      );
+      kind = "ok";
+      text = count + " recent fire detection" + (count === 1 ? "" : "s") +
+        " within about 275 km of " + placeName +
+        ". Darker dots are upwind. Fainter dots are older. FIRMS dots are hotspots, not confirmed fire perimeters.";
     }
+    if (sourcesFailed) {
+      kind = "warn";
+      text += " " + sourcesFailed + " of " + sources +
+        " satellite feeds did not respond, so some detections may be missing.";
+    }
+    setStatus(fireStatus, kind, text);
     notifyStory();
+    reportFeed("fires", sourcesFailed ? "partial" : "ok");
   } catch (error) {
     if (thisRequest !== fireRequestCount) return;
     setStatus(fireStatus, "error", "Could not load fire data. Try Refresh.");
-    latestFireInfo = { placeName: placeName, count: null, demo: false, error: error.message };
+    latestFireInfo = {
+      placeName: placeName,
+      count: null,
+      demo: false,
+      error: error.message,
+      sourcesFailed: 0,
+      sources: 3
+    };
     notifyStory();
+    reportFeed("fires", "error");
   }
 }

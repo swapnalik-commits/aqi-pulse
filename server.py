@@ -16,6 +16,11 @@ import os
 ROOT = Path(__file__).resolve().parent
 FIRMS_SOURCES = ("VIIRS_SNPP_NRT", "VIIRS_NOAA20_NRT", "VIIRS_NOAA21_NRT")
 SEARCH_RADIUS_KM = 275
+# FIRMS day range 1 is the current UTC day only, so just after midnight UTC the map
+# would drop the previous day. 5 is the longest single request and keeps late feeds visible.
+FIRMS_DAY_RANGE = 5
+# Same hotspot on more than one satellite counts once. Matches js/geo.js FIRE_DEDUPE_KM.
+DEDUPE_KM = 1.5
 DEMO_FIRE_DATA = {
     "Los Angeles": [
         {"latitude": 34.13, "longitude": -117.96, "detectedAt": "2025-08-15T14:32:00Z"},
@@ -68,7 +73,7 @@ def distance_km(lat1, lon1, lat2, lon2):
 def fetch_source(source, bounds):
     url = (
         "https://firms.modaps.eosdis.nasa.gov/api/area/csv/"
-        + quote(MAP_KEY, safe="") + "/" + source + "/" + quote(bounds, safe=",") + "/1"
+        + quote(MAP_KEY, safe="") + "/" + source + "/" + quote(bounds, safe=",") + "/" + str(FIRMS_DAY_RANGE)
     )
     request = Request(url, headers={"User-Agent": "AQI-Pulse/1.0"})
     with urlopen(request, timeout=20) as response:
@@ -90,6 +95,19 @@ def fetch_source(source, bounds):
             continue
         detections.append({"latitude": latitude, "longitude": longitude, "detectedAt": timestamp})
     return detections
+
+
+def dedupe_fires(fires, radius_km=DEDUPE_KM):
+    ordered = sorted(fires, key=lambda fire: fire["detectedAt"], reverse=True)
+    kept = []
+    for fire in ordered:
+        if any(
+            distance_km(fire["latitude"], fire["longitude"], other["latitude"], other["longitude"]) <= radius_km
+            for other in kept
+        ):
+            continue
+        kept.append(fire)
+    return kept
 
 
 def nearby_fires(latitude, longitude):
@@ -120,8 +138,9 @@ def nearby_fires(latitude, longitude):
             message = "Could not reach NASA FIRMS. Check your internet connection and try again."
         raise RuntimeError(message)
 
-    return [fire for fire in detections
-            if distance_km(latitude, longitude, fire["latitude"], fire["longitude"]) <= SEARCH_RADIUS_KM]
+    nearby = [fire for fire in detections
+              if distance_km(latitude, longitude, fire["latitude"], fire["longitude"]) <= SEARCH_RADIUS_KM]
+    return dedupe_fires(nearby), len(errors)
 
 
 def demo_fires_near(latitude, longitude):
@@ -154,14 +173,24 @@ class Handler(SimpleHTTPRequestHandler):
             return self.send_json(400, {"message": "Provide valid latitude and longitude values."})
 
         if not MAP_KEY:
-            return self.send_json(200, {"fires": demo_fires_near(latitude, longitude), "demo": True})
+            return self.send_json(200, {
+                "fires": demo_fires_near(latitude, longitude),
+                "demo": True,
+                "sources": len(FIRMS_SOURCES),
+                "sourcesFailed": 0
+            })
 
         try:
-            result = nearby_fires(latitude, longitude)
+            fires, sources_failed = nearby_fires(latitude, longitude)
         except RuntimeError as error:
             return self.send_json(502, {"message": str(error)})
 
-        return self.send_json(200, {"fires": result, "demo": False})
+        return self.send_json(200, {
+            "fires": fires,
+            "demo": False,
+            "sources": len(FIRMS_SOURCES),
+            "sourcesFailed": sources_failed
+        })
 
     def send_json(self, status, payload):
         body = json.dumps(payload).encode("utf-8")

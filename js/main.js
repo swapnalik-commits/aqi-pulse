@@ -1,7 +1,10 @@
 const placeSelect = document.querySelector("#place");
 const refreshBtn = document.querySelector("#refresh");
 const chartStatus = document.querySelector("#chart-status");
-const storyBox = document.querySelector("#story");
+const storyFires = document.querySelector("#story-fires");
+const storyWind = document.querySelector("#story-wind");
+const storyAir = document.querySelector("#story-air");
+const aqiTable = document.querySelector("#aqi-table");
 
 const chartBox = document.querySelector("#aqi-chart");
 const trendBox = document.querySelector("#trend");
@@ -16,6 +19,31 @@ let currentTrend = null;
 let lastPoints = null;
 let lastPlaceName = "";
 let airReady = false;
+const feeds = { fires: "loading", wind: "loading", air: "loading" };
+
+function resetFeeds() {
+  feeds.fires = "loading";
+  feeds.wind = "loading";
+  feeds.air = "loading";
+  if (refreshBtn) refreshBtn.disabled = true;
+  updatedBox.textContent = "Refreshing…";
+}
+
+// Called when fires, wind, or air quality finish. "partial" means some satellite feeds failed.
+function noteFeed(name, state) {
+  feeds[name] = state;
+  if (feeds.fires === "loading" || feeds.wind === "loading" || feeds.air === "loading") return;
+  if (refreshBtn) refreshBtn.disabled = false;
+  const failed = feeds.fires === "error" || feeds.wind === "error" || feeds.air === "error";
+  if (failed) {
+    updatedBox.textContent = "Some data did not load. Try Refresh.";
+    return;
+  }
+  markUpdated();
+  if (feeds.fires === "partial") {
+    updatedBox.textContent += " One or more satellite feeds did not respond.";
+  }
+}
 
 // US EPA AQI levels: used for the chart bands and the health message.
 const AQI_LEVELS = [
@@ -50,71 +78,12 @@ function markUpdated() {
 // Plain-language summary for issue #8.
 function updateStory() {
   const placeName = lastPlaceName || placeSelect.selectedOptions[0].textContent;
-  const parts = [];
-
-  let storyKind = "ok";
-
-  if (latestFireInfo.error) {
-    parts.push("Fire data could not be loaded.");
-    storyKind = "error";
-  } else if (latestFireInfo.count === null) {
-    parts.push("Loading nearby fires…");
-    storyKind = "loading";
-  } else if (latestFireInfo.demo) {
-    parts.push(
-      latestFireInfo.count
-        ? "DEMO SAMPLE: " + latestFireInfo.count + " example fire location" +
-          (latestFireInfo.count === 1 ? "" : "s") + " near " + placeName + "."
-        : "DEMO SAMPLE: no example fires nearby."
-    );
-  } else if (latestFireInfo.count === 0) {
-    parts.push("No fires nearby.");
-  } else {
-    parts.push(
-      latestFireInfo.count + " recent fire detection" +
-      (latestFireInfo.count === 1 ? " was" : "s were") +
-      " found within about 275 km of " + placeName + "."
-    );
-  }
-
-  if (windReading.speed === null) {
-    const windMsg = windReading.message || "Loading wind…";
-    parts.push(windMsg);
-    if (windMsg.indexOf("Could not") === 0) storyKind = "error";
-    else if (storyKind !== "error") storyKind = "loading";
-  } else {
-    let windLine = "The wind is blowing toward " + windReading.compass +
-      " at " + windReading.speed + " km/h.";
-    const upwind = countUpwindFires();
-    if (upwind !== null && latestFireInfo.count > 0) {
-      windLine += upwind > 0
-        ? " About " + upwind + " of the mapped fire" + (upwind === 1 ? "" : "s") +
-          " sit roughly upwind, so smoke could be carried toward " + placeName + "."
-        : " Those detections are not clearly upwind of " + placeName +
-          " right now, so the wind may not be carrying that smoke toward the city.";
-    }
-    parts.push(windLine);
-  }
-
-  if (!airReady) {
-    parts.push("Loading air quality…");
-    if (storyKind !== "error") storyKind = "loading";
-  } else if (currentTrend) {
-    parts.push(
-      "Air quality is " + currentTrend.label.toLowerCase() +
-      " (" + changeText(currentTrend.change) + ")."
-    );
-  } else if (lastPoints && lastPoints.length) {
-    parts.push(
-      "Current US AQI is " + lastPoints[lastPoints.length - 1].aqi +
-      ", but there is not enough hourly data to label a short-term trend."
-    );
-  } else {
-    parts.push("Could not load air quality.");
-    storyKind = "error";
-  }
-
-  setStatus(storyBox, storyKind, parts.join(" "));
+  const fires = fireStory(latestFireInfo, placeName);
+  const wind = windStory(windReading, placeName, countUpwindFires(), latestFireInfo.count);
+  const air = airStory({ ready: airReady, trend: currentTrend, points: lastPoints });
+  setStatus(storyFires, fires.kind, fires.text);
+  setStatus(storyWind, wind.kind, wind.text);
+  setStatus(storyAir, air.kind, air.text);
 }
 
 function showChartPlaceholder(kind, text) {
@@ -123,6 +92,7 @@ function showChartPlaceholder(kind, text) {
   placeholder.className = "chart-placeholder status-msg is-" + kind;
   placeholder.textContent = text;
   chartBox.appendChild(placeholder);
+  fillAqiTable([]);
 }
 
 function setSkyState(kind, title) {
@@ -137,15 +107,10 @@ function showPlace() {
   airReady = false;
   currentTrend = null;
   lastPoints = null;
-  updatedBox.textContent = "Refreshing…";
-  if (refreshBtn) refreshBtn.disabled = true;
+  resetFeeds();
   showFires(placeSelect.value, placeName);
   loadWind(placeSelect.value, placeName);
-  loadAirQuality(placeSelect.value, placeName).finally(function () {
-    if (refreshBtn) refreshBtn.disabled = false;
-    markUpdated();
-    updateStory();
-  });
+  loadAirQuality(placeSelect.value, placeName);
   updateStory();
 }
 
@@ -194,6 +159,7 @@ async function loadAirQuality(coords, placeName) {
       showChartPlaceholder("empty", "No air-quality data to chart.");
       airReady = true;
       updateStory();
+      noteFeed("air", "ok");
       return;
     }
 
@@ -207,6 +173,7 @@ async function loadAirQuality(coords, placeName) {
     showTrend();
     showNow(points[points.length - 1], placeName);
     updateStory();
+    noteFeed("air", "ok");
   } catch (error) {
     if (thisRequest !== requestCount) return;
     setStatus(chartStatus, "error", "Could not load air quality. Try Refresh.");
@@ -215,6 +182,7 @@ async function loadAirQuality(coords, placeName) {
     adviceBox.hidden = true;
     airReady = true;
     updateStory();
+    noteFeed("air", "error");
   }
 }
 
@@ -354,6 +322,40 @@ function drawChart(points, trend) {
     .attr("y", y(last.aqi) < margin.top + 20 ? y(last.aqi) + 20 : y(last.aqi) - 10)
     .attr("text-anchor", "end")
     .text("Now: " + last.aqi);
+
+  fillAqiTable(points);
+}
+
+function fillAqiTable(points) {
+  if (!aqiTable) return;
+  aqiTable.replaceChildren();
+  if (!points.length) return;
+
+  const caption = document.createElement("caption");
+  caption.textContent = "Hourly US AQI, newest first";
+  aqiTable.appendChild(caption);
+
+  const head = document.createElement("thead");
+  const headRow = document.createElement("tr");
+  ["Time at the place", "US AQI"].forEach(label => {
+    const cell = document.createElement("th");
+    cell.textContent = label;
+    cell.scope = "col";
+    headRow.appendChild(cell);
+  });
+  head.appendChild(headRow);
+
+  const body = document.createElement("tbody");
+  points.slice().reverse().forEach(point => {
+    const row = document.createElement("tr");
+    const time = document.createElement("td");
+    time.textContent = d3.utcFormat("%b %-d, %-I %p")(point.time);
+    const value = document.createElement("td");
+    value.textContent = String(point.aqi);
+    row.append(time, value);
+    body.appendChild(row);
+  });
+  aqiTable.append(head, body);
 }
 
 // Trend badge (rule is in js/trend.js).
