@@ -353,6 +353,11 @@ main {
   gap: 6px;
 }
 
+/* Age note is longer text, so keep it on its own row instead of next to "Selected place". */
+#legend-age {
+  flex: 1 0 100%;
+}
+
 .legend-fire,
 .legend-place,
 .legend-swatch {
