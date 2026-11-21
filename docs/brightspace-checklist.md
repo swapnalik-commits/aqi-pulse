@@ -6,9 +6,9 @@ If the upload works, Brightspace sends a **confirmation receipt**. If you do not
 
 ## Build the zip last
 
-Do not zip the project for Dropbox yet. Make the zip only after the final version is on `main`:
+Do not zip the project for Dropbox until the final version is on `main`.
 
-- Q3 in `docs/findings.md` is answered (issue #11). It still says “To be added.” Finish that before any upload.
+- Q1, Q2, and Q3 are answered in `docs/findings.md`.
 - The README includes a screenshot of the finished page (issue #18).
 - The whole site has been smoke tested (issue #19).
 
@@ -44,9 +44,8 @@ No NASA key is required for a preview. Live fire dots need a `MAP_KEY` in a loca
 
 ## Before you click Upload
 
-- [ ] Q3 is written in `docs/findings.md`
-- [ ] Issue #18 (README screenshot) and issue #19 (smoke test) are done
-- [ ] The zip was built after those, from the final version
+- [ ] Issue #19 (smoke test) is done
+- [ ] The zip was built after that, from the final version
 - [ ] The Dropbox folder name matches the assignment instructions
 - [ ] You still have time before 11:59 p.m. Newfoundland Time
 - [ ] After upload, you can see the confirmation receipt
