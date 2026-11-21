@@ -1,39 +1,76 @@
-# aqi-pulse
-Live air-quality and wildfire visualization: fires, wind, and how the air is changing
+# AQI Pulse
 
-The page shows fire detections from about the last 5 days, the wind for the current hour, and US AQI for the last 24 hours with a 1-hour trend.
+A live page that puts nearby wildfires, wind, and air quality in one view.
 
-## Write-up
+![Los Angeles dashboard: fires, wind, and Stable AQI](docs/images/q1-los-angeles.png)
 
-- [Findings](docs/findings.md) answer the three research questions.
-- [Design notes](docs/design-notes.md) explain the chart, the trend rule, and the map.
+## What the page shows
 
-![Los Angeles on 29 Oct 2026: fires, wind toward the southwest, and a Stable AQI](docs/images/q1-los-angeles.png)
+| Part | What it means |
+| --- | --- |
+| Sky band | Current US AQI, health note, and a 1-hour trend (Worsening / Stable / Improving) |
+| Map | Fire detections in about the last 5 days within ~275 km, this hour’s wind, and an upwind wedge |
+| Chart | Hourly US AQI for the last 24 hours, in the place’s local time |
+| What changed | Three short lines: fires, wind, and air quality |
 
-## Run the page
+Pick **Los Angeles**, **Denver**, or **Seattle**, then use **Refresh** to reload.
 
-Run the local server from PowerShell:
+Darker map dots are upwind. Fainter dots are older. The same hotspot seen by more than one satellite is drawn once.
 
-```text
-python server.py
+## Run it
+
+You need Python 3. Do not open `index.html` as a file. Use the local server.
+
+**Windows**
+
+```powershell
+py server.py
 ```
 
-Then open <http://127.0.0.1:8000/>. Use the local server rather than opening `index.html` as a `file://` URL.
+**Mac**
 
-### Running without a NASA FIRMS key
+```bash
+python3 server.py
+```
 
-No `.env` file or API key is needed to preview the project. Without a key, the app shows built-in example fire locations and timestamps so the map can be explored. They are clearly labeled **DEMO SAMPLE** and are fictional examples, not real or live satellite detections. Wind, air quality, and map tiles still load from their respective online services.
+Then open [http://127.0.0.1:8000/](http://127.0.0.1:8000/).
 
-### Enabling live NASA FIRMS data
+### Preview without a NASA key
 
-Request a `MAP_KEY` from the [NASA FIRMS API page](https://firms.modaps.eosdis.nasa.gov/api), then create a `.env` file in the project root with:
+No `.env` file is required. Without a key, the map shows labeled **DEMO SAMPLE** fire locations so you can try the layout. Wind, air quality, and map tiles still load live.
+
+### Live fire data
+
+1. Request a key from the [NASA FIRMS API page](https://firms.modaps.eosdis.nasa.gov/api).
+2. Create a `.env` file in the project root:
 
 ```text
 MAP_KEY=your_key_here
 ```
 
-Restart `python server.py`. The server reads the key from `.env` and proxies FIRMS requests, keeping the key out of browser code. `.env` is Git-ignored.
+3. Restart the server.
 
-The map shows the selected place, current wind, and detections from the three VIIRS near-real-time satellite feeds within roughly 275 km over about the last 5 days. The same hotspot seen by more than one satellite is drawn once. Darker dots are upwind, fainter dots are older, and the pale wedge is the upwind direction. The wind arrow points downwind and is labeled with speed in km/h. The basemap uses OpenFreeMap, which requires no API key and provides OpenStreetMap attribution.
+The server keeps the key out of the browser. `.env` is Git-ignored.
 
-Check the trend rule with `node --test`.
+## Data
+
+- [NASA FIRMS](https://firms.modaps.eosdis.nasa.gov/) — VIIRS near-real-time fire detections
+- [Open-Meteo Air Quality](https://open-meteo.com/en/docs/air-quality-api) — hourly US AQI
+- [Open-Meteo Weather](https://open-meteo.com/en/docs) — wind speed and direction
+- [OpenFreeMap](https://openfreemap.org/) — map tiles
+
+## Write-up
+
+- [Findings](docs/findings.md) — answers to the three research questions
+- [Design notes](docs/design-notes.md) — why the chart, trend rule, and map look this way
+- [Brightspace checklist](docs/brightspace-checklist.md) — how to package the Dropbox upload
+
+## Tests
+
+```bash
+node --test
+```
+
+## Course
+
+COMP 6934 group project, Memorial University of Newfoundland.
