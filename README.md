@@ -64,6 +64,7 @@ The server keeps the key out of the browser. `.env` is Git-ignored.
 - [Findings](docs/findings.md) — answers to the three research questions
 - [Design notes](docs/design-notes.md) — why the chart, trend rule, and map look this way
 - [Brightspace checklist](docs/brightspace-checklist.md) — how to package the Dropbox upload
+- [Project proposal](docs/project-proposal.pdf)
 
 ## Tests
 

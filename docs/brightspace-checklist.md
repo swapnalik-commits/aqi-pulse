@@ -19,7 +19,7 @@ The zip is the file a marker will open. It should be that finished copy, not an 
 - The AQI Pulse website (`index.html`, `css/`, `js/`, `server.py`)
 - How to run it (`README.md`)
 - The research write-up (`docs/findings.md`), with Q1, Q2, and Q3 answered
-- Design notes, tests, and the project proposal PDF
+- Design notes, tests, and `docs/project-proposal.pdf`
 - GitHub: https://github.com/swapnalik-commits/aqi-pulse
 
 Leave out `.env`. The NASA key stays on your computer.
